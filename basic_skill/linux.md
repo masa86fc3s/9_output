@@ -1,7 +1,3 @@
-# Docker
-* Dockerfile, docker image, docker container の違いを説明できる
-* Pythonの公式docker imageを使ってcontainerを作成
-
 # Linux
 * 基本CLI操作であることを理解する
     * ls, cd, cp, mv, rm
