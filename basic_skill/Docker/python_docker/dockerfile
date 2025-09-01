@@ -1,0 +1,11 @@
+# ベースイメージ（Python公式イメージを利用）
+FROM python:3.9-alpine3.12
+
+# ワーキングディレクトリを作成
+WORKDIR /app
+
+# ファイルをコピー
+COPY app.py /app/app.py
+
+# コンテナが起動したら実行するコマンド
+CMD ["python", "app.py"]
