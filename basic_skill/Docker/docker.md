@@ -1,13 +1,48 @@
 # Docker
 * Dockerfile, docker image, docker container の違いを説明できる
 * Pythonの公式docker imageを使ってcontainerを作成
+* ubuntu環境下でdockerを立ち上げ、awsのec2などサービスと連携させること
+
+---
 
 - 以下Docker desctopを使用した場合
 * Docker fileを作成した後、実行させたいパイソンスクリプトを作成して、
     * docker build -t python_docker .(現在のディレクトリを表している)
     * docker run python_docker python --version
 
+
 - 以下ubuntuにDockerをダウンロードした場合
+    * WSLを有効化する
+    * ubuntuをインストール
+    * ubuntu環境下でDocker Engineをインストール
+- Docker Engineをインストール
+    #### 1. パッケージ更新
+    * sudo apt-get update
+
+    #### 2. 必要なツールをインストール
+    * sudo apt-get install -y ca-certificates curl gnupg lsb-release
+
+    #### 3. Docker公式GPGキーを登録
+    * sudo mkdir -p /etc/apt/keyrings
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | \
+    sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+
+    #### 4. Dockerリポジトリを追加
+    * echo \
+    "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
+    https://download.docker.com/linux/ubuntu \
+    $(lsb_release -cs) stable" | \
+    sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+    #### 5. Docker本体をインストール
+    * sudo apt-get update
+    sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+#### Dockerイメージ作成
+docker build -t python-docker .
+
+#### コンテナ起動
+docker run --rm python-docker
 
 --- 
 
