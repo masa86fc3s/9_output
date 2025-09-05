@@ -23,5 +23,5 @@ jobs:
         run: |
           aws cloudformation deploy \
             --stack-name my-lab-stack \
-            --template-file AWS/template.yaml \
+            --template-file must_skill/AWS/template.yaml \
             --capabilities CAPABILITY_NAMED_IAM
