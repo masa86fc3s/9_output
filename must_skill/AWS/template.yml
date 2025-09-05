@@ -17,6 +17,7 @@ Resources:
       VersioningConfiguration:
         Status: Enabled
 
+
   # ===== IAM Role for EC2 =====
   InformaticaEC2Role:
     Type: AWS::IAM::Role
