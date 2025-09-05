@@ -1,25 +1,19 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: "Create S3 buckets and IAM role for EC2 access with unique names"
-
-Parameters:
-  StackSuffix:
-    Type: String
-    Default: !Ref "AWS::StackName"
-    Description: "Suffix to make resource names unique"
+Description: "Create S3 buckets and IAM role for EC2 access"
 
 Resources:
   # ===== S3 Buckets =====
   InputBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub "${AWS::AccountId}-informatica-input-${StackSuffix}"
+      BucketName: !Sub "${AWS::AccountId}-informatica-input-${AWS::StackName}"
       VersioningConfiguration:
         Status: Enabled
 
   OutputBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub "${AWS::AccountId}-informatica-output-${StackSuffix}"
+      BucketName: !Sub "${AWS::AccountId}-informatica-output-${AWS::StackName}"
       VersioningConfiguration:
         Status: Enabled
 
@@ -27,7 +21,7 @@ Resources:
   InformaticaEC2Role:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub "InformaticaEC2Role-${StackSuffix}"
+      RoleName: !Sub "InformaticaEC2Role-${AWS::StackName}"
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -43,7 +37,7 @@ Resources:
   InformaticaEC2InstanceProfile:
     Type: AWS::IAM::InstanceProfile
     Properties:
-      InstanceProfileName: !Sub "InformaticaEC2InstanceProfile-${StackSuffix}"
+      InstanceProfileName: !Sub "InformaticaEC2InstanceProfile-${AWS::StackName}"
       Roles:
         - !Ref InformaticaEC2Role
 
