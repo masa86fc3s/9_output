@@ -43,7 +43,6 @@ Resources:
       Roles:
         - !Ref InformaticaEC2Role
 
-
 Outputs:
   InputBucketName:
     Value: !Ref InputBucket
