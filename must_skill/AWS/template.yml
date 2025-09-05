@@ -56,6 +56,7 @@ Outputs:
     Value: !Ref InformaticaEC2Role
     Description: "IAM Role for EC2"
 
+
   InstanceProfileName:
     Value: !Ref InformaticaEC2InstanceProfile
     Description: "Instance profile to attach EC2"
