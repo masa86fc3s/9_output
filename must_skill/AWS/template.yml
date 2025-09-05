@@ -6,14 +6,14 @@ Resources:
   InputBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub "${AWS::AccountId}-informatica-input-${AWS::StackName}"
+      BucketName: !Sub "${AWS::AccountId}-cloud-input-${AWS::StackName}"
       VersioningConfiguration:
         Status: Enabled
 
   OutputBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub "${AWS::AccountId}-informatica-output-${AWS::StackName}"
+      BucketName: !Sub "${AWS::AccountId}-cloud-output-${AWS::StackName}"
       VersioningConfiguration:
         Status: Enabled
 
