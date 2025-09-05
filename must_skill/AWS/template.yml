@@ -10,7 +10,6 @@ Resources:
       VersioningConfiguration:
         Status: Enabled
 
-
   OutputBucket:
     Type: AWS::S3::Bucket
     Properties:
