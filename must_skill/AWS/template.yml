@@ -1,0 +1,61 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Create S3 buckets and IAM role for EC2 access"
+
+Resources:
+  # ===== S3 Buckets =====
+  InputBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "${AWS::AccountId}-informatica-input"
+      VersioningConfiguration:
+        Status: Enabled
+
+  OutputBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "${AWS::AccountId}-informatica-output"
+      VersioningConfiguration:
+        Status: Enabled
+
+  # ===== IAM Role for EC2 =====
+  InformaticaEC2Role:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: InformaticaEC2Role
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        # SSMセッションマネージャーのアクセス権限
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+        # S3 フルアクセス
+        - arn:aws:iam::aws:policy/AmazonS3FullAccess
+
+  # ===== Instance Profile for EC2 =====
+  InformaticaEC2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      InstanceProfileName: InformaticaEC2InstanceProfile
+      Roles:
+        - !Ref InformaticaEC2Role
+
+Outputs:
+  InputBucketName:
+    Value: !Ref InputBucket
+    Description: "Name of input S3 bucket"
+
+  OutputBucketName:
+    Value: !Ref OutputBucket
+    Description: "Name of output S3 bucket"
+
+  EC2RoleName:
+    Value: !Ref InformaticaEC2Role
+    Description: "IAM Role for EC2"
+
+  InstanceProfileName:
+    Value: !Ref InformaticaEC2InstanceProfile
+    Description: "Instance profile to attach EC2"
