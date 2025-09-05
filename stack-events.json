@@ -1,0 +1,149 @@
+{
+    "StackEvents": [
+        {
+            "StackId": "arn:aws:cloudformation:ap-southeast-2:216989098479:stack/my-lab-stack/93804810-8a2b-11f0-b537-06e91f84ee95",
+            "EventId": "99f73ff0-8a2b-11f0-8cac-068990b97567",
+            "StackName": "my-lab-stack",
+            "LogicalResourceId": "my-lab-stack",
+            "PhysicalResourceId": "arn:aws:cloudformation:ap-southeast-2:216989098479:stack/my-lab-stack/93804810-8a2b-11f0-b537-06e91f84ee95",
+            "ResourceType": "AWS::CloudFormation::Stack",
+            "Timestamp": "2025-09-05T07:40:31.968000+00:00",
+            "ResourceStatus": "ROLLBACK_COMPLETE"
+        },
+        {
+            "StackId": "arn:aws:cloudformation:ap-southeast-2:216989098479:stack/my-lab-stack/93804810-8a2b-11f0-b537-06e91f84ee95",
+            "EventId": "InputBucket-DELETE_COMPLETE-2025-09-05T07:40:31.646Z",
+            "StackName": "my-lab-stack",
+            "LogicalResourceId": "InputBucket",
+            "PhysicalResourceId": "",
+            "ResourceType": "AWS::S3::Bucket",
+            "Timestamp": "2025-09-05T07:40:31.646000+00:00",
+            "ResourceStatus": "DELETE_COMPLETE",
+            "ResourceProperties": "{\"BucketName\":\"216989098479-informatica-input\",\"VersioningConfiguration\":{\"Status\":\"Enabled\"}}"
+        },
+        {
+            "StackId": "arn:aws:cloudformation:ap-southeast-2:216989098479:stack/my-lab-stack/93804810-8a2b-11f0-b537-06e91f84ee95",
+            "EventId": "OutputBucket-DELETE_COMPLETE-2025-09-05T07:40:31.622Z",
+            "StackName": "my-lab-stack",
+            "LogicalResourceId": "OutputBucket",
+            "PhysicalResourceId": "",
+            "ResourceType": "AWS::S3::Bucket",
+            "Timestamp": "2025-09-05T07:40:31.622000+00:00",
+            "ResourceStatus": "DELETE_COMPLETE",
+            "ResourceProperties": "{\"BucketName\":\"216989098479-informatica-output\",\"VersioningConfiguration\":{\"Status\":\"Enabled\"}}"
+        },
+        {
+            "StackId": "arn:aws:cloudformation:ap-southeast-2:216989098479:stack/my-lab-stack/93804810-8a2b-11f0-b537-06e91f84ee95",
+            "EventId": "InformaticaEC2Role-DELETE_COMPLETE-2025-09-05T07:40:31.577Z",
+            "StackName": "my-lab-stack",
+            "LogicalResourceId": "InformaticaEC2Role",
+            "PhysicalResourceId": "",
+            "ResourceType": "AWS::IAM::Role",
+            "Timestamp": "2025-09-05T07:40:31.577000+00:00",
+            "ResourceStatus": "DELETE_COMPLETE",
+            "ResourceProperties": "{\"ManagedPolicyArns\":[\"arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore\",\"arn:aws:iam::aws:policy/AmazonS3FullAccess\"],\"RoleName\":\"InformaticaEC2Role\",\"AssumeRolePolicyDocument\":{\"Version\":\"2012-10-17\",\"Statement\":[{\"Action\":\"sts:AssumeRole\",\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"ec2.amazonaws.com\"}}]}}"
+        },
+        {
+            "StackId": "arn:aws:cloudformation:ap-southeast-2:216989098479:stack/my-lab-stack/93804810-8a2b-11f0-b537-06e91f84ee95",
+            "EventId": "98af0880-8a2b-11f0-85a0-0af5d59332c5",
+            "StackName": "my-lab-stack",
+            "LogicalResourceId": "my-lab-stack",
+            "PhysicalResourceId": "arn:aws:cloudformation:ap-southeast-2:216989098479:stack/my-lab-stack/93804810-8a2b-11f0-b537-06e91f84ee95",
+            "ResourceType": "AWS::CloudFormation::Stack",
+            "Timestamp": "2025-09-05T07:40:29.824000+00:00",
+            "ResourceStatus": "ROLLBACK_IN_PROGRESS",
+            "ResourceStatusReason": "The following resource(s) failed to create: [OutputBucket, InputBucket, InformaticaEC2Role]. Rollback requested by user."
+        },
+        {
+            "StackId": "arn:aws:cloudformation:ap-southeast-2:216989098479:stack/my-lab-stack/93804810-8a2b-11f0-b537-06e91f84ee95",
+            "EventId": "InputBucket-CREATE_FAILED-2025-09-05T07:40:29.518Z",
+            "StackName": "my-lab-stack",
+            "LogicalResourceId": "InputBucket",
+            "PhysicalResourceId": "",
+            "ResourceType": "AWS::S3::Bucket",
+            "Timestamp": "2025-09-05T07:40:29.518000+00:00",
+            "ResourceStatus": "CREATE_FAILED",
+            "ResourceStatusReason": "216989098479-informatica-input already exists in stack arn:aws:cloudformation:ap-southeast-2:216989098479:stack/cloud-formation/756fe8a0-8a15-11f0-b81c-063cd1b64bff",
+            "ResourceProperties": "{\"BucketName\":\"216989098479-informatica-input\",\"VersioningConfiguration\":{\"Status\":\"Enabled\"}}"
+        },
+        {
+            "StackId": "arn:aws:cloudformation:ap-southeast-2:216989098479:stack/my-lab-stack/93804810-8a2b-11f0-b537-06e91f84ee95",
+            "EventId": "OutputBucket-CREATE_FAILED-2025-09-05T07:40:29.486Z",
+            "StackName": "my-lab-stack",
+            "LogicalResourceId": "OutputBucket",
+            "PhysicalResourceId": "",
+            "ResourceType": "AWS::S3::Bucket",
+            "Timestamp": "2025-09-05T07:40:29.486000+00:00",
+            "ResourceStatus": "CREATE_FAILED",
+            "ResourceStatusReason": "216989098479-informatica-output already exists in stack arn:aws:cloudformation:ap-southeast-2:216989098479:stack/cloud-formation/756fe8a0-8a15-11f0-b81c-063cd1b64bff",
+            "ResourceProperties": "{\"BucketName\":\"216989098479-informatica-output\",\"VersioningConfiguration\":{\"Status\":\"Enabled\"}}"
+        },
+        {
+            "StackId": "arn:aws:cloudformation:ap-southeast-2:216989098479:stack/my-lab-stack/93804810-8a2b-11f0-b537-06e91f84ee95",
+            "EventId": "InformaticaEC2Role-CREATE_FAILED-2025-09-05T07:40:29.360Z",
+            "StackName": "my-lab-stack",
+            "LogicalResourceId": "InformaticaEC2Role",
+            "PhysicalResourceId": "",
+            "ResourceType": "AWS::IAM::Role",
+            "Timestamp": "2025-09-05T07:40:29.360000+00:00",
+            "ResourceStatus": "CREATE_FAILED",
+            "ResourceStatusReason": "InformaticaEC2Role already exists in stack arn:aws:cloudformation:ap-southeast-2:216989098479:stack/cloud-formation/756fe8a0-8a15-11f0-b81c-063cd1b64bff",
+            "ResourceProperties": "{\"ManagedPolicyArns\":[\"arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore\",\"arn:aws:iam::aws:policy/AmazonS3FullAccess\"],\"RoleName\":\"InformaticaEC2Role\",\"AssumeRolePolicyDocument\":{\"Version\":\"2012-10-17\",\"Statement\":[{\"Action\":\"sts:AssumeRole\",\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"ec2.amazonaws.com\"}}]}}"
+        },
+        {
+            "StackId": "arn:aws:cloudformation:ap-southeast-2:216989098479:stack/my-lab-stack/93804810-8a2b-11f0-b537-06e91f84ee95",
+            "EventId": "InputBucket-CREATE_IN_PROGRESS-2025-09-05T07:40:29.118Z",
+            "StackName": "my-lab-stack",
+            "LogicalResourceId": "InputBucket",
+            "PhysicalResourceId": "",
+            "ResourceType": "AWS::S3::Bucket",
+            "Timestamp": "2025-09-05T07:40:29.118000+00:00",
+            "ResourceStatus": "CREATE_IN_PROGRESS",
+            "ResourceProperties": "{\"BucketName\":\"216989098479-informatica-input\",\"VersioningConfiguration\":{\"Status\":\"Enabled\"}}"
+        },
+        {
+            "StackId": "arn:aws:cloudformation:ap-southeast-2:216989098479:stack/my-lab-stack/93804810-8a2b-11f0-b537-06e91f84ee95",
+            "EventId": "InformaticaEC2Role-CREATE_IN_PROGRESS-2025-09-05T07:40:29.064Z",
+            "StackName": "my-lab-stack",
+            "LogicalResourceId": "InformaticaEC2Role",
+            "PhysicalResourceId": "",
+            "ResourceType": "AWS::IAM::Role",
+            "Timestamp": "2025-09-05T07:40:29.064000+00:00",
+            "ResourceStatus": "CREATE_IN_PROGRESS",
+            "ResourceProperties": "{\"ManagedPolicyArns\":[\"arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore\",\"arn:aws:iam::aws:policy/AmazonS3FullAccess\"],\"RoleName\":\"InformaticaEC2Role\",\"AssumeRolePolicyDocument\":{\"Version\":\"2012-10-17\",\"Statement\":[{\"Action\":\"sts:AssumeRole\",\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"ec2.amazonaws.com\"}}]}}"
+        },
+        {
+            "StackId": "arn:aws:cloudformation:ap-southeast-2:216989098479:stack/my-lab-stack/93804810-8a2b-11f0-b537-06e91f84ee95",
+            "EventId": "OutputBucket-CREATE_IN_PROGRESS-2025-09-05T07:40:29.061Z",
+            "StackName": "my-lab-stack",
+            "LogicalResourceId": "OutputBucket",
+            "PhysicalResourceId": "",
+            "ResourceType": "AWS::S3::Bucket",
+            "Timestamp": "2025-09-05T07:40:29.061000+00:00",
+            "ResourceStatus": "CREATE_IN_PROGRESS",
+            "ResourceProperties": "{\"BucketName\":\"216989098479-informatica-output\",\"VersioningConfiguration\":{\"Status\":\"Enabled\"}}"
+        },
+        {
+            "StackId": "arn:aws:cloudformation:ap-southeast-2:216989098479:stack/my-lab-stack/93804810-8a2b-11f0-b537-06e91f84ee95",
+            "EventId": "96fc0150-8a2b-11f0-b2f7-02a09d8f7977",
+            "StackName": "my-lab-stack",
+            "LogicalResourceId": "my-lab-stack",
+            "PhysicalResourceId": "arn:aws:cloudformation:ap-southeast-2:216989098479:stack/my-lab-stack/93804810-8a2b-11f0-b537-06e91f84ee95",
+            "ResourceType": "AWS::CloudFormation::Stack",
+            "Timestamp": "2025-09-05T07:40:26.975000+00:00",
+            "ResourceStatus": "CREATE_IN_PROGRESS",
+            "ResourceStatusReason": "User Initiated"
+        },
+        {
+            "StackId": "arn:aws:cloudformation:ap-southeast-2:216989098479:stack/my-lab-stack/93804810-8a2b-11f0-b537-06e91f84ee95",
+            "EventId": "937ff9f0-8a2b-11f0-b537-06e91f84ee95",
+            "StackName": "my-lab-stack",
+            "LogicalResourceId": "my-lab-stack",
+            "PhysicalResourceId": "arn:aws:cloudformation:ap-southeast-2:216989098479:stack/my-lab-stack/93804810-8a2b-11f0-b537-06e91f84ee95",
+            "ResourceType": "AWS::CloudFormation::Stack",
+            "Timestamp": "2025-09-05T07:40:21.213000+00:00",
+            "ResourceStatus": "REVIEW_IN_PROGRESS",
+            "ResourceStatusReason": "User Initiated"
+        }
+    ]
+}

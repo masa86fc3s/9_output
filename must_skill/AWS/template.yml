@@ -6,23 +6,22 @@ Resources:
   InputBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub "${AWS::AccountId}-informatica-input"
+      BucketName: !Sub "${AWS::AccountId}-informatica-input-${AWS::Region}-${AWS::StackName}"
       VersioningConfiguration:
         Status: Enabled
 
   OutputBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub "${AWS::AccountId}-informatica-output"
+      BucketName: !Sub "${AWS::AccountId}-informatica-output-${AWS::Region}-${AWS::StackName}"
       VersioningConfiguration:
         Status: Enabled
-
 
   # ===== IAM Role for EC2 =====
   InformaticaEC2Role:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: InformaticaEC2Role
+      RoleName: !Sub "InformaticaEC2Role-${AWS::StackName}"
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -31,16 +30,14 @@ Resources:
               Service: ec2.amazonaws.com
             Action: sts:AssumeRole
       ManagedPolicyArns:
-        # SSMセッションマネージャーのアクセス権限
         - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
-        # S3 フルアクセス
         - arn:aws:iam::aws:policy/AmazonS3FullAccess
 
   # ===== Instance Profile for EC2 =====
   InformaticaEC2InstanceProfile:
     Type: AWS::IAM::InstanceProfile
     Properties:
-      InstanceProfileName: InformaticaEC2InstanceProfile
+      InstanceProfileName: !Sub "InformaticaEC2InstanceProfile-${AWS::StackName}"
       Roles:
         - !Ref InformaticaEC2Role
 
