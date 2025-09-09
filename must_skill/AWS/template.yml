@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: "Complete stack: VPC, EC2+SSM, S3, Lambda, Glue, Athena WorkGroup"
+Description: "Create S3 buckets, IAM Roles, VPC, Public Subnet, EC2 with SSM, Lambda (dummy), Glue Database and Job (dummy)"
 
 Parameters:
   LatestAmiId:
@@ -7,6 +7,7 @@ Parameters:
     Default: /aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2
 
 Resources:
+
   # ===== VPC =====
   MyVPC:
     Type: AWS::EC2::VPC
@@ -39,7 +40,7 @@ Resources:
       VpcId: !Ref MyVPC
       InternetGatewayId: !Ref MyInternetGateway
 
-  # ===== Route Table =====
+  # ===== Route Table for Public Subnet =====
   MyRouteTable:
     Type: AWS::EC2::RouteTable
     Properties:
@@ -107,12 +108,6 @@ Resources:
         - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
         - arn:aws:iam::aws:policy/AmazonS3FullAccess
 
-  InformaticaEC2InstanceProfile:
-    Type: AWS::IAM::InstanceProfile
-    Properties:
-      Roles:
-        - !Ref InformaticaEC2Role
-
   LambdaExecutionRole:
     Type: AWS::IAM::Role
     Properties:
@@ -143,7 +138,13 @@ Resources:
         - arn:aws:iam::aws:policy/service-role/AWSGlueServiceRole
         - arn:aws:iam::aws:policy/AmazonS3FullAccess
 
-  # ===== EC2 Instance =====
+  # ===== Instance Profile & EC2 =====
+  InformaticaEC2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref InformaticaEC2Role
+
   InformaticaEC2Instance:
     Type: AWS::EC2::Instance
     Properties:
@@ -157,7 +158,7 @@ Resources:
         - Key: Name
           Value: !Sub "InformaticaEC2-${AWS::StackName}"
 
-  # ===== Lambda Function (dummy) =====
+  # ===== Lambda (dummy) =====
   MyLambdaFunction:
     Type: AWS::Lambda::Function
     Properties:
@@ -171,7 +172,7 @@ Resources:
               print("Dummy Lambda - replace code later")
               return {"status": "ok"}
 
-  # ===== Glue Database =====
+  # ===== Glue Database & Job (dummy) =====
   GlueDatabase:
     Type: AWS::Glue::Database
     Properties:
@@ -179,7 +180,6 @@ Resources:
       DatabaseInput:
         Name: !Sub "my_glue_db_${AWS::StackName}"
 
-  # ===== Glue Job (dummy) =====
   MyGlueJob:
     Type: AWS::Glue::Job
     Properties:
@@ -192,23 +192,14 @@ Resources:
       GlueVersion: "3.0"
       MaxCapacity: 2
 
-  # ===== Athena WorkGroup =====
-  MyAthenaWorkGroup:
-    Type: AWS::Athena::WorkGroup
-    Properties:
-      Name: !Sub "my_workgroup_${AWS::StackName}"
-      WorkGroupConfiguration:
-        ResultConfiguration:
-          OutputLocation: !Sub "s3://${OutputBucket}/athena-results/"
-
 Outputs:
   InputBucketName:
     Value: !Ref InputBucket
-    Description: "S3 input bucket"
+    Description: "Name of input S3 bucket"
 
   OutputBucketName:
     Value: !Ref OutputBucket
-    Description: "S3 output bucket"
+    Description: "Name of output S3 bucket"
 
   GlueScriptBucketName:
     Value: !Ref GlueScriptBucket
@@ -224,12 +215,8 @@ Outputs:
 
   GlueDatabaseName:
     Value: !Ref GlueDatabase
-    Description: "Glue Database name"
+    Description: "Glue Database Name"
 
   GlueJobName:
     Value: !Ref MyGlueJob
-    Description: "Glue Job name"
-
-  AthenaWorkGroupName:
-    Value: !Ref MyAthenaWorkGroup
-    Description: "Athena WorkGroup name"
+    Description: "Glue Job Name"
