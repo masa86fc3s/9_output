@@ -1,10 +1,11 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: "Create S3, IAM, VPC, Public Subnet, EC2 with SSM, Lambda (dummy) for later update"
+Description: "Complete stack: VPC, EC2+SSM, S3, Lambda, Glue, Athena WorkGroup"
 
 Parameters:
   LatestAmiId:
     Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
     Default: /aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2
+
 
 Resources:
   # ===== VPC =====
@@ -39,7 +40,7 @@ Resources:
       VpcId: !Ref MyVPC
       InternetGatewayId: !Ref MyInternetGateway
 
-  # ===== Route Table for Public Subnet =====
+  # ===== Route Table =====
   MyRouteTable:
     Type: AWS::EC2::RouteTable
     Properties:
@@ -64,7 +65,7 @@ Resources:
     Properties:
       GroupDescription: "Allow all outbound for SSM and Internet access"
       VpcId: !Ref MyVPC
-      SecurityGroupIngress: [] # インバウンド不要
+      SecurityGroupIngress: []
       SecurityGroupEgress:
         - IpProtocol: -1
           CidrIp: 0.0.0.0/0
@@ -84,7 +85,14 @@ Resources:
       VersioningConfiguration:
         Status: Enabled
 
-  # ===== IAM Role for EC2 =====
+  GlueScriptBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "${AWS::AccountId}-glue-scripts-${AWS::StackName}"
+      VersioningConfiguration:
+        Status: Enabled
+
+  # ===== IAM Roles =====
   InformaticaEC2Role:
     Type: AWS::IAM::Role
     Properties:
@@ -100,28 +108,12 @@ Resources:
         - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
         - arn:aws:iam::aws:policy/AmazonS3FullAccess
 
-  # ===== Instance Profile =====
   InformaticaEC2InstanceProfile:
     Type: AWS::IAM::InstanceProfile
     Properties:
       Roles:
         - !Ref InformaticaEC2Role
 
-  # ===== EC2 Instance =====
-  InformaticaEC2Instance:
-    Type: AWS::EC2::Instance
-    Properties:
-      InstanceType: t2.micro
-      IamInstanceProfile: !Ref InformaticaEC2InstanceProfile
-      ImageId: !Ref LatestAmiId
-      SecurityGroupIds:
-        - !Ref EC2SecurityGroup
-      SubnetId: !Ref MyPublicSubnet
-      Tags:
-        - Key: Name
-          Value: !Sub "InformaticaEC2-${AWS::StackName}"
-
-  # ===== Lambda IAM Role =====
   LambdaExecutionRole:
     Type: AWS::IAM::Role
     Properties:
@@ -137,6 +129,35 @@ Resources:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
         - arn:aws:iam::aws:policy/AmazonS3FullAccess
 
+  GlueJobRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "GlueJobRole-${AWS::StackName}"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: glue.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSGlueServiceRole
+        - arn:aws:iam::aws:policy/AmazonS3FullAccess
+
+  # ===== EC2 Instance =====
+  InformaticaEC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t2.micro
+      IamInstanceProfile: !Ref InformaticaEC2InstanceProfile
+      ImageId: !Ref LatestAmiId
+      SecurityGroupIds:
+        - !Ref EC2SecurityGroup
+      SubnetId: !Ref MyPublicSubnet
+      Tags:
+        - Key: Name
+          Value: !Sub "InformaticaEC2-${AWS::StackName}"
+
   # ===== Lambda Function (dummy) =====
   MyLambdaFunction:
     Type: AWS::Lambda::Function
@@ -151,14 +172,48 @@ Resources:
               print("Dummy Lambda - replace code later")
               return {"status": "ok"}
 
+  # ===== Glue Database =====
+  GlueDatabase:
+    Type: AWS::Glue::Database
+    Properties:
+      CatalogId: !Ref AWS::AccountId
+      DatabaseInput:
+        Name: !Sub "my_glue_db_${AWS::StackName}"
+
+  # ===== Glue Job (dummy) =====
+  MyGlueJob:
+    Type: AWS::Glue::Job
+    Properties:
+      Name: !Sub "my_glue_job_${AWS::StackName}"
+      Role: !Ref GlueJobRole
+      Command:
+        Name: glueetl
+        ScriptLocation: !Sub "s3://${GlueScriptBucket}/dummy/my_glue_script.py"
+        PythonVersion: 3
+      GlueVersion: "3.0"
+      MaxCapacity: 2
+
+  # ===== Athena WorkGroup =====
+  MyAthenaWorkGroup:
+    Type: AWS::Athena::WorkGroup
+    Properties:
+      Name: !Sub "my_workgroup_${AWS::StackName}"
+      WorkGroupConfiguration:
+        ResultConfiguration:
+          OutputLocation: !Sub "s3://${OutputBucket}/athena-results/"
+
 Outputs:
   InputBucketName:
     Value: !Ref InputBucket
-    Description: "Name of input S3 bucket"
+    Description: "S3 input bucket"
 
   OutputBucketName:
     Value: !Ref OutputBucket
-    Description: "Name of output S3 bucket"
+    Description: "S3 output bucket"
+
+  GlueScriptBucketName:
+    Value: !Ref GlueScriptBucket
+    Description: "S3 bucket for Glue scripts"
 
   EC2InstanceId:
     Value: !Ref InformaticaEC2Instance
@@ -167,3 +222,15 @@ Outputs:
   LambdaFunctionName:
     Value: !Ref MyLambdaFunction
     Description: "Lambda function name"
+
+  GlueDatabaseName:
+    Value: !Ref GlueDatabase
+    Description: "Glue Database name"
+
+  GlueJobName:
+    Value: !Ref MyGlueJob
+    Description: "Glue Job name"
+
+  AthenaWorkGroupName:
+    Value: !Ref MyAthenaWorkGroup
+    Description: "Athena WorkGroup name"
