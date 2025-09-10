@@ -1,0 +1,65 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: PoC stack: S3 + Lambda + DynamoDB (改良版)
+
+Resources:
+
+  # S3バケット
+  DataBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "${AWS::StackName}-data-bucket"
+
+  # DynamoDBテーブル（ハッシュキー + ソートキー）
+  ConfigTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${AWS::StackName}-config"
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+        - AttributeName: timestamp
+          AttributeType: N
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+        - AttributeName: timestamp
+          KeyType: RANGE
+      BillingMode: PAY_PER_REQUEST
+
+  # Lambda: S3アップロードトリガー
+  S3ProcessFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${AWS::StackName}-s3-process"
+      CodeUri: src/s3_process/
+      Handler: app.lambda_handler
+      Runtime: python3.11
+      Environment:
+        Variables:
+          CONFIG_TABLE_NAME: !Ref ConfigTable
+          DATA_BUCKET_NAME: !Ref DataBucket
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ConfigTable
+        - S3ReadPolicy:
+            BucketName: !Ref DataBucket
+      Events:
+        S3UploadEvent:
+          Type: S3
+          Properties:
+            Bucket: !Ref DataBucket
+            Events: s3:ObjectCreated:*
+
+Outputs:
+  DataBucketName:
+    Value: !Ref DataBucket
+    Description: "S3バケット名"
+
+  ConfigTableName:
+    Value: !Ref ConfigTable
+    Description: "DynamoDBテーブル名"
+
+  LambdaFunctionName:
+    Value: !Ref S3ProcessFunction
+    Description: "Lambda関数名"

@@ -1,0 +1,50 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: S3 → Lambda → DynamoDB PoC
+
+Resources:
+  MyBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "${AWS::StackName}-bucket-${AWS::AccountId}-${AWS::Region}"
+      VersioningConfiguration:
+        Status: Enabled
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  MyTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${AWS::StackName}-table"
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+
+  MyLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: app.lambda_handler
+      Runtime: python3.11
+      CodeUri: src/
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref MyTable
+        # Lambda に S3 読み取り権限を与える（循環回避）
+        - S3ReadPolicy:
+            BucketName: !Sub "${AWS::StackName}-bucket-${AWS::AccountId}-${AWS::Region}"
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref MyTable
+      Events:
+        S3UploadEvent:
+          Type: S3
+          Properties:
+            Bucket: !Ref MyBucket
+            Events: s3:ObjectCreated:*
