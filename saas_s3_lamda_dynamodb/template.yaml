@@ -1,0 +1,68 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: SaaS → S3 → Lambda → DynamoDB PoC（新規バケット対応・循環回避）
+
+Resources:
+  # S3 バケット（新規作成）
+  MyBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "${AWS::StackName}-bucket-${AWS::AccountId}-${AWS::Region}"
+      VersioningConfiguration:
+        Status: Enabled
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  # DynamoDB テーブル
+  MyTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${AWS::StackName}-table"
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+
+  # S3 → DynamoDB Lambda
+  MyLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: app.lambda_handler
+      Runtime: python3.11
+      CodeUri: src/
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref MyTable
+        # ここを文字列で指定して循環依存を回避
+        - S3ReadPolicy:
+            BucketName: !Sub "${AWS::StackName}-bucket-${AWS::AccountId}-${AWS::Region}"
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref MyTable
+          BUCKET_NAME: !Sub "${AWS::StackName}-bucket-${AWS::AccountId}-${AWS::Region}"
+      Events:
+        S3UploadEvent:
+          Type: S3
+          Properties:
+            Bucket: !Ref MyBucket
+            Events: s3:ObjectCreated:*
+
+  # SaaS データ取得 → S3 アップロード Lambda
+  SaaSFetchLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: saas_fetch.lambda_handler
+      Runtime: python3.11
+      CodeUri: src/
+      Policies:
+        - S3WritePolicy:
+            BucketName: !Sub "${AWS::StackName}-bucket-${AWS::AccountId}-${AWS::Region}"
+      Environment:
+        Variables:
+          BUCKET_NAME: !Sub "${AWS::StackName}-bucket-${AWS::AccountId}-${AWS::Region}"
