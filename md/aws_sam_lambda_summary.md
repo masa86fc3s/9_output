@@ -35,6 +35,7 @@ SaaS API → Lambda (saas_fetch.py) → S3 → Lambda (app.py) → DynamoDB
 | **CloudFormation のパラメータエラー** | テンプレートの `Default` 値や必須パラメータを見直し。Stack 起動時に明示的にパラメータを指定して解決。 |
 | **S3 → Lambda のイベント通知が発火しない** | バケット通知設定（`NotificationConfiguration`）と Lambda の権限を再確認して修正。 |
 | **CSV の読み込み/文字コード** | UTF-8/BOM の差異で DynamoDB への書き込みがエラーに。Python 側で `encoding='utf-8-sig'` を指定して解決。 |
+|**s3とlamdaの循環依存発生**|S3 バケットと Lambda 関数を同時に作成した際、リソース作成順序が指定されておらず依存関係が衝突。S3 バケットが作成されるまで Lambda のデプロイを待機させるよう修正した。|
 
 ## 4️⃣ 学び・今後に活かせる点
 - **イベントドリブン設計の強力さ**：バッチ処理ではなく、S3イベントを使うことでサーバレスかつリアルタイムにデータ連携できる。  
