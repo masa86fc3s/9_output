@@ -30,11 +30,11 @@ jobs:
 
       # 5. SAM ビルド
       - name: Build
-        run: sam build --template-file ../mini_full_stack/template.yaml
+        run: sam build --template-file ../../mini_full_stack/template.yaml
 
       - name: Deploy
         run: sam deploy \
-              --template-file ../mini_full_stack/template.yaml \
+              --template-file ../../mini_full_stack/template.yaml \
               --stack-name my-stack \
               --capabilities CAPABILITY_IAM \
               --no-confirm-changeset
