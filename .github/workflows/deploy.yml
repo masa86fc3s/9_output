@@ -21,7 +21,7 @@ jobs:
         uses: aws-actions/setup-sam@v2
 
       - name: Build
-        run: sam build --template-file mini_full_stack/template.yaml
+        run: sam build --template-file 9_output/mini_full_stack/template.yaml
 
       - name: Deploy
         run: sam deploy \
