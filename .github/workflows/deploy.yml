@@ -1,15 +1,18 @@
 name: Deploy SAM
 on:
   push:
-    branches: [ master ]
+    branches: [ master ]   # masterブランチへのpushで自動実行
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
+      # 1. リポジトリをチェックアウト
       - name: Checkout
         uses: actions/checkout@v3
 
+      # 2. AWS認証情報を設定
       - name: Set up AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -17,12 +20,19 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ap-southeast-2
 
+      # 3. SAM CLI をセットアップ
       - name: Set up SAM CLI
         uses: aws-actions/setup-sam@v2
 
-      - name: Build
-        run: sam build --template-file 9_output/mini_full_stack/template.yaml
+      # 4. ディレクトリ構造を確認（任意）
+      - name: Check working directory
+        run: ls -R
 
+      # 5. SAM ビルド
+      - name: Build
+        run: sam build --template-file mini_full_stack/template.yaml
+
+      # 6. SAM デプロイ
       - name: Deploy
         run: sam deploy \
               --template-file mini_full_stack/template.yaml \
