@@ -40,9 +40,5 @@ jobs:
 
       # 7. デプロイ
       - name: Deploy
-        run: |
-          sam deploy \
-            --template-file mini_full_stack/template.yaml \
-            --stack-name my-stack \
-            --capabilities CAPABILITY_IAM \
-            --no-confirm-changeset
+        run: sam deploy --no-confirm-changeset
+
