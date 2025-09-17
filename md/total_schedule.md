@@ -11,8 +11,8 @@
 | 5 | **EC2 + SSM (参画初期用)** | - Session Manager経由で接続<br>- IAMロール付与、ポリシー確認 | 半日 | 実務での接続操作に慣れる |
 | 6 | **Informatica（IICS）基礎** | - データ統合・ETLの概念<br>- On-Demandトレーニングで画面操作確認<br>- SaaS連携イメージ | 1〜2日 | S3/Lambdaフローとの類似点を意識 |
 | 7 | **GitHub Actionsによる自動デプロイ（任意）** | - SAM/CloudFormationデプロイ自動化<br>- Lint / 単体テスト | 半日 | PoCスタックで試す |
-| 8 | **Glue / Athena / フルスタック統合** | - 小スタック + VPC / Glue / Athena統合<br>- IAMロール・権限整理 | 1〜2日 | PoC理解後に段階的に追加 |
-| 9 | **saas api 取得、**
+| 8 | **Glue / Athena / 統合<br>- IAMロール・権限整理 | 1〜2日 | PoC理解後フルスタック統合** | - 小スタック + VPC / Glue / Athenaに段階的に追加 |
+| 9 | **saas api 取得、linux操作の復習、SQL,Pythonの復習**
 
 
 

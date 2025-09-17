@@ -1,11 +1,16 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: S3 → Lambda PoC (循環依存解消版)
+Description: S3 → Lambda → Glue → Athena PoC
+
+Parameters:
+  GlueJobName:
+    Type: String
+    Default: mini-glue-job
 
 Resources:
 
-  # S3 バケット
-  MyBucket:
+  # S3 バケット（データアップロード用）
+  InputBucket:
     Type: AWS::S3::Bucket
     Properties:
       BucketName: mini-full-stack
@@ -17,31 +22,116 @@ Resources:
         IgnorePublicAcls: true
         RestrictPublicBuckets: true
 
-  # Lambda 関数
-  MyLambda:
+  # S3 バケット（Athena 結果用）
+  AthenaResultBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: mini-athena-results
+      VersioningConfiguration:
+        Status: Enabled
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  # Lambda 関数（S3 トリガーで Glue Job + Athena 起動）
+  LambdaGlueAthena:
     Type: AWS::Serverless::Function
     Properties:
+      FunctionName: lambda-glue-athena
       Handler: app.lambda_handler
       Runtime: python3.11
       CodeUri: src/
       Policies:
         - S3ReadPolicy:
-            BucketName: mini-full-stack
+            BucketName: !Ref InputBucket
+        - S3WritePolicy:
+            BucketName: !Ref AthenaResultBucket
+        - PolicyName: GlueJobRunPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - glue:StartJobRun
+                  - glue:GetJobRun
+                Resource: "*"
+        - PolicyName: AthenaExecutePolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - athena:StartQueryExecution
+                  - athena:GetQueryExecution
+                  - athena:GetQueryResults
+                Resource: "*"
       Environment:
         Variables:
-          BUCKET_NAME: mini-full-stack
+          INPUT_BUCKET: !Ref InputBucket
+          ATHENA_OUTPUT_BUCKET: !Ref AthenaResultBucket
+          GLUE_JOB_NAME: !Ref GlueJobName
+          ATHENA_DATABASE: mini_glue_db
       Events:
         S3UploadEvent:
           Type: S3
           Properties:
-            Bucket: !Ref MyBucket
+            Bucket: !Ref InputBucket
             Events: s3:ObjectCreated:*
+
+  # Glue Job（ETL 仮置き）
+  GlueETLJob:
+    Type: AWS::Glue::Job
+    Properties:
+      Name: !Ref GlueJobName
+      Role: !GetAtt GlueJobRole.Arn
+      Command:
+        Name: glueetl
+        ScriptLocation: s3://mini-full-stack/glue-scripts/etl.py
+        PythonVersion: 3
+      MaxCapacity: 2
+
+  # Glue Job 用 IAM ロール
+  GlueJobRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: glue.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: GlueS3Access
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                  - s3:ListBucket
+                Resource:
+                  - !Sub arn:aws:s3:::mini-full-stack
+                  - !Sub arn:aws:s3:::mini-full-stack/*
+                  - !Sub arn:aws:s3:::mini-athena-results
+                  - !Sub arn:aws:s3:::mini-athena-results/*
 
 Outputs:
   LambdaFunctionName:
     Description: "Lambda Function Name"
-    Value: !Ref MyLambda
+    Value: !Ref LambdaGlueAthena
 
-  S3BucketName:
-    Description: "S3 Bucket Name"
-    Value: !Ref MyBucket
+  InputBucketName:
+    Description: "S3 Input Bucket Name"
+    Value: !Ref InputBucket
+
+  AthenaResultBucketName:
+    Description: "S3 Athena Result Bucket Name"
+    Value: !Ref AthenaResultBucket
+
+  GlueJobName:
+    Description: "Glue Job Name"
+    Value: !Ref GlueETLJob
