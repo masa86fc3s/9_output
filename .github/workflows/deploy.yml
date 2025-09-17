@@ -40,5 +40,6 @@ jobs:
 
       # 7. デプロイ
       - name: Deploy
+        working-directory: mini-full-stack
         run: sam deploy --no-confirm-changeset
 
