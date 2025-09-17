@@ -1,12 +1,14 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: S3 → Lambda → S3 PoC
+Description: S3 → Lambda PoC (循環依存解消版)
 
 Resources:
+
+  # S3 バケット
   MyBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: mini-full-stack   # ← 固定バケット名
+      BucketName: mini-full-stack
       VersioningConfiguration:
         Status: Enabled
       PublicAccessBlockConfiguration:
@@ -15,6 +17,7 @@ Resources:
         IgnorePublicAcls: true
         RestrictPublicBuckets: true
 
+  # Lambda 関数
   MyLambda:
     Type: AWS::Serverless::Function
     Properties:
@@ -23,15 +26,22 @@ Resources:
       CodeUri: src/
       Policies:
         - S3ReadPolicy:
-            BucketName: !Ref MyBucket
-        - S3WritePolicy:
-            BucketName: !Ref MyBucket
+            BucketName: mini-full-stack
       Environment:
         Variables:
-          OUTPUT_BUCKET: !Ref MyBucket
+          BUCKET_NAME: mini-full-stack
       Events:
         S3UploadEvent:
           Type: S3
           Properties:
             Bucket: !Ref MyBucket
             Events: s3:ObjectCreated:*
+
+Outputs:
+  LambdaFunctionName:
+    Description: "Lambda Function Name"
+    Value: !Ref MyLambda
+
+  S3BucketName:
+    Description: "S3 Bucket Name"
+    Value: !Ref MyBucket
