@@ -89,6 +89,15 @@ Resources:
           GLUE_JOB_NAME: !Ref GlueJobName
           ATHENA_DATABASE: mini_glue_db
 
+  # Lambda Invoke Permission（S3からの呼び出し許可）
+  LambdaInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref LambdaGlueAthena
+      Action: lambda:InvokeFunction
+      Principal: s3.amazonaws.com
+      SourceArn: !GetAtt InputBucket.Arn
+
   # Glue Job 用 IAM ロール
   GlueJobRole:
     Type: AWS::IAM::Role
