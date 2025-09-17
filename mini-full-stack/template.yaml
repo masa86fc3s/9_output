@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: S3 → Lambda → Glue → Athena PoC（自動トリガー対応、RoleNameなし、CAPABILITY_IAMのみ）
+Description: S3 → Lambda → Glue → Athena PoC（依存関係・IAM最小化）
 
 Parameters:
   GlueJobName:
@@ -9,7 +9,6 @@ Parameters:
 
 Resources:
 
-  # S3 バケット（データアップロード用）
   InputBucket:
     Type: AWS::S3::Bucket
     Properties:
@@ -22,7 +21,6 @@ Resources:
         IgnorePublicAcls: true
         RestrictPublicBuckets: true
 
-  # S3 バケット（Athena 結果用）
   AthenaResultBucket:
     Type: AWS::S3::Bucket
     Properties:
@@ -35,7 +33,6 @@ Resources:
         IgnorePublicAcls: true
         RestrictPublicBuckets: true
 
-  # Lambda 実行用 IAM Role
   LambdaExecutionRole:
     Type: AWS::IAM::Role
     Properties:
@@ -47,7 +44,7 @@ Resources:
               Service: lambda.amazonaws.com
             Action: sts:AssumeRole
       Policies:
-        - PolicyName: LambdaFullAccess
+        - PolicyName: LambdaAccess
           PolicyDocument:
             Version: '2012-10-17'
             Statement:
@@ -57,15 +54,15 @@ Resources:
                   - s3:PutObject
                   - s3:ListBucket
                 Resource:
-                  - !Sub arn:aws:s3:::${AWS::StackName}-input-bucket
-                  - !Sub arn:aws:s3:::${AWS::StackName}-input-bucket/*
-                  - !Sub arn:aws:s3:::${AWS::StackName}-athena-results
-                  - !Sub arn:aws:s3:::${AWS::StackName}-athena-results/*
+                  - !Sub arn:aws:s3:::${InputBucket}
+                  - !Sub arn:aws:s3:::${InputBucket}/*
+                  - !Sub arn:aws:s3:::${AthenaResultBucket}
+                  - !Sub arn:aws:s3:::${AthenaResultBucket}/*
               - Effect: Allow
                 Action:
                   - glue:StartJobRun
                   - glue:GetJobRun
-                Resource: "*"
+                Resource: !Sub arn:aws:glue:${AWS::Region}:${AWS::AccountId}:job/${GlueJobName}
               - Effect: Allow
                 Action:
                   - athena:StartQueryExecution
@@ -73,13 +70,9 @@ Resources:
                   - athena:GetQueryResults
                 Resource: "*"
 
-  # Lambda 関数（S3 トリガー付き）
   LambdaGlueAthena:
     Type: AWS::Serverless::Function
-    DependsOn:
-      - InputBucket          # バケット作成完了後まで待機
-      - AthenaResultBucket
-      - LambdaExecutionRole  # ロール作成完了後まで待機
+    DependsOn: InputBucket
     Properties:
       FunctionName: lambda-glue-athena
       Handler: app.lambda_handler
@@ -104,7 +97,6 @@ Resources:
                   - Name: suffix
                     Value: ".csv"
 
-  # Glue Job 用 IAM ロール
   GlueJobRole:
     Type: AWS::IAM::Role
     Properties:
@@ -126,17 +118,14 @@ Resources:
                   - s3:PutObject
                   - s3:ListBucket
                 Resource:
-                  - !Sub arn:aws:s3:::${AWS::StackName}-input-bucket
-                  - !Sub arn:aws:s3:::${AWS::StackName}-input-bucket/*
-                  - !Sub arn:aws:s3:::${AWS::StackName}-athena-results
-                  - !Sub arn:aws:s3:::${AWS::StackName}-athena-results/*
+                  - !Sub arn:aws:s3:::${InputBucket}
+                  - !Sub arn:aws:s3:::${InputBucket}/*
+                  - !Sub arn:aws:s3:::${AthenaResultBucket}
+                  - !Sub arn:aws:s3:::${AthenaResultBucket}/*
 
-  # Glue Job（ETL 仮置き）
   GlueETLJob:
     Type: AWS::Glue::Job
-    DependsOn:
-      - InputBucket       # スクリプト格納先バケットが必要
-      - GlueJobRole       # Glue Job Role が作成されるまで待機
+    DependsOn: GlueJobRole
     Properties:
       Name: !Ref GlueJobName
       Role: !GetAtt GlueJobRole.Arn
@@ -147,18 +136,15 @@ Resources:
       MaxCapacity: 2
 
 Outputs:
-  LambdaFunctionName:
-    Description: "Lambda Function Name"
+  LambdaFunction:
+    Description: Lambda Function Name
     Value: !Ref LambdaGlueAthena
-
   InputBucketName:
-    Description: "S3 Input Bucket Name"
+    Description: S3 Input Bucket Name
     Value: !Ref InputBucket
-
   AthenaResultBucketName:
-    Description: "S3 Athena Result Bucket Name"
+    Description: S3 Athena Result Bucket Name
     Value: !Ref AthenaResultBucket
-
-  GlueJobName:
-    Description: "Glue Job Name"
+  GlueJob:
+    Description: Glue Job Name
     Value: !Ref GlueETLJob
