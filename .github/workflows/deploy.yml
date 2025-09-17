@@ -1,42 +1,48 @@
 name: Deploy SAM
-
 on:
   push:
-    branches: [ master ]   # master ブランチへの push で実行
+    branches: [ master ]
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. リポジトリをチェックアウト
-      - name: Checkout repository
+      # 1. ソースコードをチェックアウト
+      - name: Checkout
         uses: actions/checkout@v3
 
       # 2. AWS 認証情報を設定
-      - name: Configure AWS credentials
+      - name: Set up AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ap-southeast-2
+          aws-region: ap-southeast-2   # ご利用のリージョンに変更可
 
-      # 3. SAM CLI をセットアップ
+      # 3. Python 3.11 をインストール（SAM テンプレートの Runtime と合わせる）
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      # 4. SAM CLI をセットアップ
       - name: Set up SAM CLI
         uses: aws-actions/setup-sam@v2
 
-      # 4. （任意）リポジトリルートのディレクトリ構造を確認
-      - name: List repository files
+      # 5. デバッグ用：ファイル構造を表示（初回動作確認に便利）
+      - name: Debug repository files
         run: ls -R
 
-      # 5. SAM ビルド
-      - name: Build SAM application
+      # 6. SAM アプリケーションをビルド
+      - name: Build
         run: sam build --template-file mini_full_stack/template.yaml
 
-      # 6. SAM デプロイ
-      - name: Deploy SAM stack
-        run: sam deploy \
-              --template-file mini_full_stack/template.yaml \
-              --stack-name my-stack \
-              --capabilities CAPABILITY_IAM \
-              --no-confirm-changeset
+      # 7. デプロイ
+      - name: Deploy
+        run: |
+          sam deploy \
+            --template-file mini_full_stack/template.yaml \
+            --stack-name my-stack \
+            --capabilities CAPABILITY_IAM \
+            --no-confirm-changeset
