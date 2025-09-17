@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: S3 → Lambda → Glue → Athena PoC（依存関係・IAM最小化）
+Description: S3 → Lambda → Glue → Athena PoC（固定バケット名、Eventsなし、IAM最小化）
 
 Parameters:
   GlueJobName:
@@ -9,10 +9,11 @@ Parameters:
 
 Resources:
 
+  # S3 バケット（データアップロード用）
   InputBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub "${AWS::StackName}-input-bucket"
+      BucketName: mini-full-input
       VersioningConfiguration:
         Status: Enabled
       PublicAccessBlockConfiguration:
@@ -21,10 +22,11 @@ Resources:
         IgnorePublicAcls: true
         RestrictPublicBuckets: true
 
+  # S3 バケット（Athena 結果用）
   AthenaResultBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub "${AWS::StackName}-athena-results"
+      BucketName: mini-full-output
       VersioningConfiguration:
         Status: Enabled
       PublicAccessBlockConfiguration:
@@ -33,6 +35,7 @@ Resources:
         IgnorePublicAcls: true
         RestrictPublicBuckets: true
 
+  # Lambda 実行用 IAM Role
   LambdaExecutionRole:
     Type: AWS::IAM::Role
     Properties:
@@ -54,10 +57,10 @@ Resources:
                   - s3:PutObject
                   - s3:ListBucket
                 Resource:
-                  - !Sub arn:aws:s3:::${InputBucket}
-                  - !Sub arn:aws:s3:::${InputBucket}/*
-                  - !Sub arn:aws:s3:::${AthenaResultBucket}
-                  - !Sub arn:aws:s3:::${AthenaResultBucket}/*
+                  - arn:aws:s3:::mini-full-input
+                  - arn:aws:s3:::mini-full-input/*
+                  - arn:aws:s3:::mini-full-output
+                  - arn:aws:s3:::mini-full-output/*
               - Effect: Allow
                 Action:
                   - glue:StartJobRun
@@ -70,9 +73,9 @@ Resources:
                   - athena:GetQueryResults
                 Resource: "*"
 
+  # Lambda 関数（Eventsなし）
   LambdaGlueAthena:
     Type: AWS::Serverless::Function
-    DependsOn: InputBucket
     Properties:
       FunctionName: lambda-glue-athena
       Handler: app.lambda_handler
@@ -85,18 +88,8 @@ Resources:
           ATHENA_OUTPUT_BUCKET: !Ref AthenaResultBucket
           GLUE_JOB_NAME: !Ref GlueJobName
           ATHENA_DATABASE: mini_glue_db
-      Events:
-        OnCsvUpload:
-          Type: S3
-          Properties:
-            Bucket: !Ref InputBucket
-            Events: s3:ObjectCreated:*
-            Filter:
-              S3Key:
-                Rules:
-                  - Name: suffix
-                    Value: ".csv"
 
+  # Glue Job 用 IAM ロール
   GlueJobRole:
     Type: AWS::IAM::Role
     Properties:
@@ -118,11 +111,12 @@ Resources:
                   - s3:PutObject
                   - s3:ListBucket
                 Resource:
-                  - !Sub arn:aws:s3:::${InputBucket}
-                  - !Sub arn:aws:s3:::${InputBucket}/*
-                  - !Sub arn:aws:s3:::${AthenaResultBucket}
-                  - !Sub arn:aws:s3:::${AthenaResultBucket}/*
+                  - arn:aws:s3:::mini-full-input
+                  - arn:aws:s3:::mini-full-input/*
+                  - arn:aws:s3:::mini-full-output
+                  - arn:aws:s3:::mini-full-output/*
 
+  # Glue Job（ETL 仮置き）
   GlueETLJob:
     Type: AWS::Glue::Job
     DependsOn: GlueJobRole
@@ -131,7 +125,7 @@ Resources:
       Role: !GetAtt GlueJobRole.Arn
       Command:
         Name: glueetl
-        ScriptLocation: !Sub "s3://${AWS::StackName}-input-bucket/glue-scripts/etl.py"
+        ScriptLocation: s3://mini-full-input/glue-scripts/etl.py
         PythonVersion: 3
       MaxCapacity: 2
 
