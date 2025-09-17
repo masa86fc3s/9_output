@@ -1,7 +1,7 @@
 name: Deploy SAM
 on:
   push:
-    branches: [ master ]
+    branches: [ mini ]
 
 jobs:
   deploy:
