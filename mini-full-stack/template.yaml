@@ -76,6 +76,10 @@ Resources:
   # Lambda 関数（S3 トリガー付き）
   LambdaGlueAthena:
     Type: AWS::Serverless::Function
+    DependsOn:
+      - InputBucket          # バケット作成完了後まで待機
+      - AthenaResultBucket
+      - LambdaExecutionRole  # ロール作成完了後まで待機
     Properties:
       FunctionName: lambda-glue-athena
       Handler: app.lambda_handler
@@ -99,18 +103,6 @@ Resources:
                 Rules:
                   - Name: suffix
                     Value: ".csv"
-
-  # Glue Job（ETL 仮置き）
-  GlueETLJob:
-    Type: AWS::Glue::Job
-    Properties:
-      Name: !Ref GlueJobName
-      Role: !GetAtt GlueJobRole.Arn
-      Command:
-        Name: glueetl
-        ScriptLocation: !Sub "s3://${AWS::StackName}-input-bucket/glue-scripts/etl.py"
-        PythonVersion: 3
-      MaxCapacity: 2
 
   # Glue Job 用 IAM ロール
   GlueJobRole:
@@ -138,6 +130,21 @@ Resources:
                   - !Sub arn:aws:s3:::${AWS::StackName}-input-bucket/*
                   - !Sub arn:aws:s3:::${AWS::StackName}-athena-results
                   - !Sub arn:aws:s3:::${AWS::StackName}-athena-results/*
+
+  # Glue Job（ETL 仮置き）
+  GlueETLJob:
+    Type: AWS::Glue::Job
+    DependsOn:
+      - InputBucket       # スクリプト格納先バケットが必要
+      - GlueJobRole       # Glue Job Role が作成されるまで待機
+    Properties:
+      Name: !Ref GlueJobName
+      Role: !GetAtt GlueJobRole.Arn
+      Command:
+        Name: glueetl
+        ScriptLocation: !Sub "s3://${AWS::StackName}-input-bucket/glue-scripts/etl.py"
+        PythonVersion: 3
+      MaxCapacity: 2
 
 Outputs:
   LambdaFunctionName:
