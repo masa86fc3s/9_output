@@ -48,25 +48,24 @@ Resources:
             BucketName: !Ref InputBucket
         - S3WritePolicy:
             BucketName: !Ref AthenaResultBucket
-        - PolicyName: GlueJobRunPolicy
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
-              - Effect: Allow
-                Action:
-                  - glue:StartJobRun
-                  - glue:GetJobRun
-                Resource: "*"
-        - PolicyName: AthenaExecutePolicy
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
-              - Effect: Allow
-                Action:
-                  - athena:StartQueryExecution
-                  - athena:GetQueryExecution
-                  - athena:GetQueryResults
-                Resource: "*"
+      InlinePolicies:
+        GlueJobRunPolicy:
+          Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - glue:StartJobRun
+                - glue:GetJobRun
+              Resource: "*"
+        AthenaExecutePolicy:
+          Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - athena:StartQueryExecution
+                - athena:GetQueryExecution
+                - athena:GetQueryResults
+              Resource: "*"
       Environment:
         Variables:
           INPUT_BUCKET: !Ref InputBucket
