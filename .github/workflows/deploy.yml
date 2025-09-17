@@ -36,7 +36,7 @@ jobs:
 
       # 6. SAM アプリケーションをビルド
       - name: Build
-        run: sam build --template-file mini_full_stack/template.yaml
+        run: sam build --template-file mini-full-stack/template.yaml
 
       # 7. デプロイ
       - name: Deploy
