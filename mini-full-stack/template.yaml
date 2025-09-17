@@ -1,12 +1,11 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: S3 → Lambda → Glue → Athena PoC (RoleNameなし、CAPABILITY_IAMのみ)
+Description: S3 → Lambda → Glue → Athena PoC（自動トリガー対応、RoleNameなし、CAPABILITY_IAMのみ）
 
 Parameters:
   GlueJobName:
     Type: String
     Default: mini-glue-job
-
 
 Resources:
 
@@ -14,7 +13,7 @@ Resources:
   InputBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: mini-full-stack
+      BucketName: !Sub "${AWS::StackName}-input-bucket"
       VersioningConfiguration:
         Status: Enabled
       PublicAccessBlockConfiguration:
@@ -27,7 +26,7 @@ Resources:
   AthenaResultBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: mini-athena-results
+      BucketName: !Sub "${AWS::StackName}-athena-results"
       VersioningConfiguration:
         Status: Enabled
       PublicAccessBlockConfiguration:
@@ -36,7 +35,7 @@ Resources:
         IgnorePublicAcls: true
         RestrictPublicBuckets: true
 
-  # Lambda 実行用 IAM Role（RoleNameなし）
+  # Lambda 実行用 IAM Role
   LambdaExecutionRole:
     Type: AWS::IAM::Role
     Properties:
@@ -52,24 +51,21 @@ Resources:
           PolicyDocument:
             Version: '2012-10-17'
             Statement:
-              # S3 読み書き
               - Effect: Allow
                 Action:
                   - s3:GetObject
                   - s3:PutObject
                   - s3:ListBucket
                 Resource:
-                  - !Sub arn:aws:s3:::mini-full-stack
-                  - !Sub arn:aws:s3:::mini-full-stack/*
-                  - !Sub arn:aws:s3:::mini-athena-results
-                  - !Sub arn:aws:s3:::mini-athena-results/*
-              # Glue Job 実行
+                  - !Sub arn:aws:s3:::${AWS::StackName}-input-bucket
+                  - !Sub arn:aws:s3:::${AWS::StackName}-input-bucket/*
+                  - !Sub arn:aws:s3:::${AWS::StackName}-athena-results
+                  - !Sub arn:aws:s3:::${AWS::StackName}-athena-results/*
               - Effect: Allow
                 Action:
                   - glue:StartJobRun
                   - glue:GetJobRun
                 Resource: "*"
-              # Athena クエリ実行
               - Effect: Allow
                 Action:
                   - athena:StartQueryExecution
@@ -77,7 +73,7 @@ Resources:
                   - athena:GetQueryResults
                 Resource: "*"
 
-  # Lambda 関数（S3トリガーは手動設定）
+  # Lambda 関数（S3 トリガー付き）
   LambdaGlueAthena:
     Type: AWS::Serverless::Function
     Properties:
@@ -92,7 +88,17 @@ Resources:
           ATHENA_OUTPUT_BUCKET: !Ref AthenaResultBucket
           GLUE_JOB_NAME: !Ref GlueJobName
           ATHENA_DATABASE: mini_glue_db
-      # Events を削除して手動設定に変更
+      Events:
+        OnCsvUpload:
+          Type: S3
+          Properties:
+            Bucket: !Ref InputBucket
+            Events: s3:ObjectCreated:*
+            Filter:
+              S3Key:
+                Rules:
+                  - Name: suffix
+                    Value: ".csv"
 
   # Glue Job（ETL 仮置き）
   GlueETLJob:
@@ -102,11 +108,11 @@ Resources:
       Role: !GetAtt GlueJobRole.Arn
       Command:
         Name: glueetl
-        ScriptLocation: s3://mini-full-stack/glue-scripts/etl.py
+        ScriptLocation: !Sub "s3://${AWS::StackName}-input-bucket/glue-scripts/etl.py"
         PythonVersion: 3
       MaxCapacity: 2
 
-  # Glue Job 用 IAM ロール（RoleNameなし）
+  # Glue Job 用 IAM ロール
   GlueJobRole:
     Type: AWS::IAM::Role
     Properties:
@@ -128,10 +134,10 @@ Resources:
                   - s3:PutObject
                   - s3:ListBucket
                 Resource:
-                  - !Sub arn:aws:s3:::mini-full-stack
-                  - !Sub arn:aws:s3:::mini-full-stack/*
-                  - !Sub arn:aws:s3:::mini-athena-results
-                  - !Sub arn:aws:s3:::mini-athena-results/*
+                  - !Sub arn:aws:s3:::${AWS::StackName}-input-bucket
+                  - !Sub arn:aws:s3:::${AWS::StackName}-input-bucket/*
+                  - !Sub arn:aws:s3:::${AWS::StackName}-athena-results
+                  - !Sub arn:aws:s3:::${AWS::StackName}-athena-results/*
 
 Outputs:
   LambdaFunctionName:
