@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: S3 → Lambda → Glue → Athena PoC (S3トリガー手動設定版)
+Description: S3 → Lambda → Glue → Athena PoC (RoleNameなし、CAPABILITY_IAMのみ)
 
 Parameters:
   GlueJobName:
@@ -35,11 +35,10 @@ Resources:
         IgnorePublicAcls: true
         RestrictPublicBuckets: true
 
-  # Lambda 実行用 IAM Role
+  # Lambda 実行用 IAM Role（RoleNameなし）
   LambdaExecutionRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: lambda-glue-athena-role
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -106,7 +105,7 @@ Resources:
         PythonVersion: 3
       MaxCapacity: 2
 
-  # Glue Job 用 IAM ロール
+  # Glue Job 用 IAM ロール（RoleNameなし）
   GlueJobRole:
     Type: AWS::IAM::Role
     Properties:
