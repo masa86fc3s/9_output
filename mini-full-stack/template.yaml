@@ -59,7 +59,7 @@ Resources:
                   - s3:GetObject
                   - s3:PutObject
                   - s3:ListBucket
-                  - s3:DeleteObject   # ← 追加
+                  - s3:DeleteObject
                 Resource:
                   - arn:aws:s3:::mini-full-input
                   - arn:aws:s3:::mini-full-input/*
@@ -105,7 +105,7 @@ Resources:
       Principal: s3.amazonaws.com
       SourceArn: !GetAtt InputBucket.Arn
 
-  # Glue Job 用 IAM ロール
+  # Glue Job 用 IAM ロール（DeleteObject 追加済み）
   GlueJobRole:
     Type: AWS::IAM::Role
     Properties:
@@ -126,6 +126,7 @@ Resources:
                   - s3:GetObject
                   - s3:PutObject
                   - s3:ListBucket
+                  - s3:DeleteObject   # ← ここを追加
                 Resource:
                   - arn:aws:s3:::mini-full-input
                   - arn:aws:s3:::mini-full-input/*
