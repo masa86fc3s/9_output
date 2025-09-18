@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: S3 → Lambda → Glue → Athena PoC（固定バケット名、Eventsなし、IAM最小化、Glue権限修正版 + Athena S3権限追加）
+Description: S3 → Lambda → Glue → Athena PoC（固定バケット名、Eventsなし、IAM最小化、Glue権限修正版 + Athena S3権限修正版）
 
 Parameters:
   GlueJobName:
@@ -34,8 +34,12 @@ Resources:
         BlockPublicPolicy: true
         IgnorePublicAcls: true
         RestrictPublicBuckets: true
-     # Athena 書き込み用ポリシー
-    BucketPolicy:
+
+  # Athena 書き込み用バケットポリシー（別リソースとして定義）
+  AthenaResultBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref AthenaResultBucket
       PolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -47,8 +51,9 @@ Resources:
               - s3:PutObject
               - s3:GetObject
             Resource:
-              - arn:aws:s3:::mini-full-output
-              - arn:aws:s3:::mini-full-output/*
+              - !Sub arn:aws:s3:::${AthenaResultBucket}
+              - !Sub arn:aws:s3:::${AthenaResultBucket}/*
+
   # Lambda 実行用 IAM Role
   LambdaExecutionRole:
     Type: AWS::IAM::Role
@@ -67,7 +72,7 @@ Resources:
           PolicyDocument:
             Version: '2012-10-17'
             Statement:
-              # S3権限（入力バケット + Athena 出力バケット + Athena 書き込み用）
+              # S3権限（入力バケット + Athena 出力バケット）
               - Effect: Allow
                 Action:
                   - s3:GetObject
