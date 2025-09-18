@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: S3 → Lambda → Glue → Athena PoC（固定バケット名、Eventsなし、IAM最小化）
+Description: S3 → Lambda → Glue → Athena PoC（固定バケット名、Eventsなし、IAM最小化、Glue権限修正版）
 
 Parameters:
   GlueJobName:
@@ -47,12 +47,13 @@ Resources:
               Service: lambda.amazonaws.com
             Action: sts:AssumeRole
       ManagedPolicyArns:
-      - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
       Policies:
         - PolicyName: LambdaAccess
           PolicyDocument:
             Version: '2012-10-17'
             Statement:
+              # S3権限
               - Effect: Allow
                 Action:
                   - s3:GetObject
@@ -63,11 +64,13 @@ Resources:
                   - arn:aws:s3:::mini-full-input/*
                   - arn:aws:s3:::mini-full-output
                   - arn:aws:s3:::mini-full-output/*
+              # Glue権限（LambdaがGlueジョブを起動・状態確認できる）
               - Effect: Allow
                 Action:
                   - glue:StartJobRun
                   - glue:GetJobRun
                 Resource: !Sub arn:aws:glue:${AWS::Region}:${AWS::AccountId}:job/${GlueJobName}
+              # Athena権限
               - Effect: Allow
                 Action:
                   - athena:StartQueryExecution
@@ -143,7 +146,7 @@ Resources:
 Outputs:
   LambdaFunction:
     Description: Lambda Function Name
-    Value: lambda-glue-athena   # 固定値に変更
+    Value: lambda-glue-athena
   InputBucketName:
     Description: S3 Input Bucket Name
     Value: !Ref InputBucket
