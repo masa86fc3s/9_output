@@ -69,6 +69,7 @@ Resources:
                 Action:
                   - glue:StartJobRun
                   - glue:GetJobRun
+                  - glue:GetJobRuns
                 Resource: !Sub arn:aws:glue:${AWS::Region}:${AWS::AccountId}:job/${GlueJobName}
               # Athena権限
               - Effect: Allow
