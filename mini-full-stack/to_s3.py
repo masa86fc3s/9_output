@@ -1,7 +1,7 @@
 import boto3
 
 s3 = boto3.client('s3')  # 認証情報は ~/.aws/credentials を利用
-bucket = "mini-full-stack"
+bucket = "mini-full-input"
 filename = "../data/train.csv"
 key = "train.csv"  # S3上のパスとファイルの名前決め
 
