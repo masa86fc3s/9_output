@@ -7,10 +7,24 @@ glue = boto3.client('glue')
 athena = boto3.client('athena')
 
 def lambda_handler(event, context):
+    job_name = os.environ['GLUE_JOB_NAME']
+
+    # -----------------------------
+    # 0. 既存GlueジョブがRUNNINGか確認
+    # -----------------------------
+    running_jobs = glue.get_job_runs(JobName=job_name, MaxResults=1)['JobRuns']
+    if running_jobs and running_jobs[0]['JobRunState'] == 'RUNNING':
+        existing_run_id = running_jobs[0]['Id']
+        print(f"Previous Glue job still running. JobRunId: {existing_run_id}")
+        return {
+            "status": "Previous Glue job still running",
+            "GlueJobRunId": existing_run_id
+        }
+
     # -----------------------------
     # 1. Glue ジョブを起動
     # -----------------------------
-    glue_response = glue.start_job_run(JobName=os.environ['GLUE_JOB_NAME'])
+    glue_response = glue.start_job_run(JobName=job_name)
     job_run_id = glue_response['JobRunId']
     print(f"Glue job started. JobRunId: {job_run_id}")
 
@@ -22,7 +36,7 @@ def lambda_handler(event, context):
     elapsed = 0
 
     while elapsed < timeout_seconds:
-        job_status = glue.get_job_run(JobName=os.environ['GLUE_JOB_NAME'], RunId=job_run_id)
+        job_status = glue.get_job_run(JobName=job_name, RunId=job_run_id)
         state = job_status['JobRun']['JobRunState']
         print(f"Current Glue job state: {state}")
         if state in ['SUCCEEDED', 'FAILED', 'STOPPED']:
