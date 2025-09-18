@@ -8,6 +8,8 @@ athena = boto3.client('athena')
 
 def lambda_handler(event, context):
     job_name = os.environ['GLUE_JOB_NAME']
+    database = os.environ['ATHENA_DATABASE']
+    output_bucket = os.environ['ATHENA_OUTPUT_BUCKET']
 
     # -----------------------------
     # 0. 既存GlueジョブがRUNNINGか確認
@@ -51,19 +53,44 @@ def lambda_handler(event, context):
     print("Glue job succeeded.")
 
     # -----------------------------
-    # 3. Athena クエリの実行
+    # 3. Athena テーブル作成（もし存在しなければ）
     # -----------------------------
-    query = "SELECT * FROM preprocessed_table LIMIT 10;"  # 適宜変更
+    create_table_query = f"""
+    CREATE EXTERNAL TABLE IF NOT EXISTS preprocessed_table (
+        -- カラム定義はGlueジョブで作成されるCSVに合わせて変更
+        col1 string,
+        col2 string,
+        col3 string
+    )
+    ROW FORMAT SERDE 'org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe'
+    WITH SERDEPROPERTIES (
+        'serialization.format' = ','
+    )
+    LOCATION 's3://{output_bucket}/preprocessed/'
+    TBLPROPERTIES ('has_encrypted_data'='false');
+    """
+
+    athena.start_query_execution(
+        QueryString=create_table_query,
+        QueryExecutionContext={'Database': database},
+        ResultConfiguration={'OutputLocation': f"s3://{output_bucket}/athena_query_results/"}
+    )
+    print("Athena CREATE TABLE query executed.")
+
+    # -----------------------------
+    # 4. Athena データ参照クエリ
+    # -----------------------------
+    select_query = "SELECT * FROM preprocessed_table LIMIT 10;"
     athena_response = athena.start_query_execution(
-        QueryString=query,
-        QueryExecutionContext={'Database': os.environ['ATHENA_DATABASE']},
-        ResultConfiguration={'OutputLocation': f"s3://{os.environ['ATHENA_OUTPUT_BUCKET']}/"}
+        QueryString=select_query,
+        QueryExecutionContext={'Database': database},
+        ResultConfiguration={'OutputLocation': f"s3://{output_bucket}/athena_query_results/"}
     )
     query_execution_id = athena_response['QueryExecutionId']
-    print(f"Athena query started. QueryExecutionId: {query_execution_id}")
+    print(f"Athena SELECT query started. QueryExecutionId: {query_execution_id}")
 
     return {
-        "status": "Glue job and Athena query started",
+        "status": "Glue job and Athena queries started",
         "GlueJobRunId": job_run_id,
         "AthenaQueryExecutionId": query_execution_id
     }

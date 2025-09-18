@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: S3 → Lambda → Glue → Athena PoC（固定バケット名、Eventsなし、IAM最小化、Glue権限修正版）
+Description: S3 → Lambda → Glue → Athena PoC（固定バケット名、Eventsなし、IAM最小化、Glue権限修正版 + Athena S3権限追加）
 
 Parameters:
   GlueJobName:
@@ -34,7 +34,21 @@ Resources:
         BlockPublicPolicy: true
         IgnorePublicAcls: true
         RestrictPublicBuckets: true
-
+     # Athena 書き込み用ポリシー
+    BucketPolicy:
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: athena.amazonaws.com
+            Action:
+              - s3:GetBucketLocation
+              - s3:PutObject
+              - s3:GetObject
+            Resource:
+              - arn:aws:s3:::mini-full-output
+              - arn:aws:s3:::mini-full-output/*
   # Lambda 実行用 IAM Role
   LambdaExecutionRole:
     Type: AWS::IAM::Role
@@ -53,7 +67,7 @@ Resources:
           PolicyDocument:
             Version: '2012-10-17'
             Statement:
-              # S3権限
+              # S3権限（入力バケット + Athena 出力バケット + Athena 書き込み用）
               - Effect: Allow
                 Action:
                   - s3:GetObject
@@ -79,6 +93,15 @@ Resources:
                   - athena:GetQueryExecution
                   - athena:GetQueryResults
                 Resource: "*"
+              # Athena が出力先 S3 に書き込むための権限
+              - Effect: Allow
+                Action:
+                  - s3:GetBucketLocation
+                  - s3:ListBucket
+                  - s3:PutObject
+                Resource:
+                  - arn:aws:s3:::mini-full-output
+                  - arn:aws:s3:::mini-full-output/*
 
   # Lambda 関数（Eventsなし）
   LambdaGlueAthena:
@@ -126,7 +149,7 @@ Resources:
                   - s3:GetObject
                   - s3:PutObject
                   - s3:ListBucket
-                  - s3:DeleteObject   # ← ここを追加
+                  - s3:DeleteObject
                 Resource:
                   - arn:aws:s3:::mini-full-input
                   - arn:aws:s3:::mini-full-input/*
