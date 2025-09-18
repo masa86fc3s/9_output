@@ -72,7 +72,7 @@ Resources:
           PolicyDocument:
             Version: '2012-10-17'
             Statement:
-              # S3権限（入力バケット + Athena 出力バケット）
+              # 1. S3権限（入力バケット + Athena 出力バケット）
               - Effect: Allow
                 Action:
                   - s3:GetObject
@@ -84,21 +84,33 @@ Resources:
                   - arn:aws:s3:::mini-full-input/*
                   - arn:aws:s3:::mini-full-output
                   - arn:aws:s3:::mini-full-output/*
-              # Glue権限（LambdaがGlueジョブを起動・状態確認できる）
+
+              # 2. Glue権限（LambdaがGlueジョブを起動・状態確認できる）
               - Effect: Allow
                 Action:
                   - glue:StartJobRun
                   - glue:GetJobRun
                   - glue:GetJobRuns
                 Resource: !Sub arn:aws:glue:${AWS::Region}:${AWS::AccountId}:job/${GlueJobName}
-              # Athena権限
+
+              # 3. Athena権限
               - Effect: Allow
                 Action:
                   - athena:StartQueryExecution
                   - athena:GetQueryExecution
                   - athena:GetQueryResults
                 Resource: "*"
-              # Athena が出力先 S3 に書き込むための権限
+
+              # 4. Glue Data Catalog 権限（Athena がテーブル参照するため）
+              - Effect: Allow
+                Action:
+                  - glue:GetDatabase
+                  - glue:GetDatabases
+                  - glue:GetTable
+                  - glue:GetTables
+                Resource: "*"
+
+              # 5. Athena 出力先 S3 権限
               - Effect: Allow
                 Action:
                   - s3:GetBucketLocation
