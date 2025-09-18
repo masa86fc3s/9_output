@@ -17,13 +17,24 @@ def lambda_handler(event, context):
     # -----------------------------
     # 2. Glue ジョブの完了待ち（最大10分）
     # -----------------------------
-    waiter = glue.get_waiter('job_run_succeeded')
-    try:
-        waiter.wait(JobName=os.environ['GLUE_JOB_NAME'], RunId=job_run_id, WaiterConfig={'Delay': 15, 'MaxAttempts': 40})
-        print("Glue job succeeded.")
-    except Exception as e:
-        print(f"Glue job failed or timed out: {e}")
-        return {"status": "Glue job failed", "error": str(e)}
+    timeout_seconds = 600  # 最大待機時間10分
+    poll_interval = 15
+    elapsed = 0
+
+    while elapsed < timeout_seconds:
+        job_status = glue.get_job_run(JobName=os.environ['GLUE_JOB_NAME'], RunId=job_run_id)
+        state = job_status['JobRun']['JobRunState']
+        print(f"Current Glue job state: {state}")
+        if state in ['SUCCEEDED', 'FAILED', 'STOPPED']:
+            break
+        time.sleep(poll_interval)
+        elapsed += poll_interval
+
+    if state != 'SUCCEEDED':
+        print(f"Glue job did not succeed: {state}")
+        return {"status": "Glue job failed or stopped", "GlueJobState": state}
+
+    print("Glue job succeeded.")
 
     # -----------------------------
     # 3. Athena クエリの実行
