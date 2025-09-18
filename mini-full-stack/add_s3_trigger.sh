@@ -31,7 +31,7 @@ echo "✅ LambdaFunction: $LAMBDA_NAME"
 # Lambda ARN を取得
 # -----------------------------
 LAMBDA_ARN=$(aws lambda get-function \
-    --function-name $LAMBDA_NAME \
+    --function-name "$LAMBDA_NAME" \
     --region $REGION \
     --query 'Configuration.FunctionArn' \
     --output text)
