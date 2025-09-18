@@ -59,6 +59,7 @@ Resources:
                   - s3:GetObject
                   - s3:PutObject
                   - s3:ListBucket
+                  - s3:DeleteObject   # ← 追加
                 Resource:
                   - arn:aws:s3:::mini-full-input
                   - arn:aws:s3:::mini-full-input/*
