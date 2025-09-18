@@ -8,7 +8,7 @@ athena = boto3.client('athena')
 
 def lambda_handler(event, context):
     job_name = os.environ['GLUE_JOB_NAME']
-    database = os.environ['ATHENA_DATABASE']
+    database_name = os.environ['ATHENA_DATABASE']
     output_bucket = os.environ['ATHENA_OUTPUT_BUCKET']
 
     # -----------------------------
@@ -53,38 +53,52 @@ def lambda_handler(event, context):
     print("Glue job succeeded.")
 
     # -----------------------------
-    # 3. Athena テーブル作成（もし存在しなければ）
+    # 3. Athena データベース作成（存在しなければ）
+    # -----------------------------
+    create_db_query = f"CREATE DATABASE IF NOT EXISTS {database_name};"
+    athena.start_query_execution(
+        QueryString=create_db_query,
+        ResultConfiguration={'OutputLocation': f"s3://{output_bucket}/"}
+    )
+    print(f"Athena database '{database_name}' ensured.")
+
+    # -----------------------------
+    # 4. Athena テーブル作成（存在しなければ）
     # -----------------------------
     create_table_query = f"""
-    CREATE EXTERNAL TABLE IF NOT EXISTS preprocessed_table (
-        -- カラム定義はGlueジョブで作成されるCSVに合わせて変更
-        col1 string,
-        col2 string,
-        col3 string
+    CREATE EXTERNAL TABLE IF NOT EXISTS {database_name}.preprocessed_table (
+        datetime string,
+        y int,
+        week string,
+        soldout int,
+        name string,
+        kcal int,
+        remarks string,
+        event string,
+        payday string,
+        weather string,
+        precipitation string,
+        temperature double
     )
     ROW FORMAT SERDE 'org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe'
-    WITH SERDEPROPERTIES (
-        'serialization.format' = ','
-    )
+    WITH SERDEPROPERTIES ('serialization.format' = ',')
     LOCATION 's3://{output_bucket}/preprocessed/'
     TBLPROPERTIES ('has_encrypted_data'='false');
     """
-
     athena.start_query_execution(
         QueryString=create_table_query,
-        QueryExecutionContext={'Database': database},
-        ResultConfiguration={'OutputLocation': f"s3://{output_bucket}/athena_query_results/"}
+        ResultConfiguration={'OutputLocation': f"s3://{output_bucket}/"}
     )
-    print("Athena CREATE TABLE query executed.")
+    print(f"Athena table 'preprocessed_table' ensured.")
 
     # -----------------------------
-    # 4. Athena データ参照クエリ
+    # 5. Athena クエリの実行例（確認用）
     # -----------------------------
-    select_query = "SELECT * FROM preprocessed_table LIMIT 10;"
+    select_query = f"SELECT * FROM {database_name}.preprocessed_table LIMIT 10;"
     athena_response = athena.start_query_execution(
         QueryString=select_query,
-        QueryExecutionContext={'Database': database},
-        ResultConfiguration={'OutputLocation': f"s3://{output_bucket}/athena_query_results/"}
+        QueryExecutionContext={'Database': database_name},
+        ResultConfiguration={'OutputLocation': f"s3://{output_bucket}/"}
     )
     query_execution_id = athena_response['QueryExecutionId']
     print(f"Athena SELECT query started. QueryExecutionId: {query_execution_id}")

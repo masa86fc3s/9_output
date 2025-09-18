@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: S3 → Lambda → Glue → Athena PoC（固定バケット名、Eventsなし、IAM最小化、Glue権限修正版 + Athena S3権限修正版）
+Description: S3 → Lambda → Glue → Athena PoC（固定バケット名、Eventsなし、IAM最小化、Glue権限 + Athena S3権限修正版）
 
 Parameters:
   GlueJobName:
@@ -35,7 +35,7 @@ Resources:
         IgnorePublicAcls: true
         RestrictPublicBuckets: true
 
-  # Athena 書き込み用バケットポリシー（別リソースとして定義）
+  # Athena 書き込み用バケットポリシー
   AthenaResultBucketPolicy:
     Type: AWS::S3::BucketPolicy
     Properties:
@@ -101,21 +101,24 @@ Resources:
                   - athena:GetQueryResults
                 Resource: "*"
 
-              # 4. Glue Data Catalog 権限（Athena がテーブル参照するため）
+              # 4. Glue Data Catalog 権限（Athena が DB/テーブル作成・参照するため）
               - Effect: Allow
                 Action:
                   - glue:GetDatabase
                   - glue:GetDatabases
                   - glue:GetTable
                   - glue:GetTables
+                  - glue:CreateDatabase
+                  - glue:CreateTable
                 Resource: "*"
 
               # 5. Athena 出力先 S3 権限
               - Effect: Allow
                 Action:
-                  - s3:GetBucketLocation
-                  - s3:ListBucket
+                  - s3:GetObject
                   - s3:PutObject
+                  - s3:ListBucket
+                  - s3:GetBucketLocation
                 Resource:
                   - arn:aws:s3:::mini-full-output
                   - arn:aws:s3:::mini-full-output/*
@@ -145,7 +148,7 @@ Resources:
       Principal: s3.amazonaws.com
       SourceArn: !GetAtt InputBucket.Arn
 
-  # Glue Job 用 IAM ロール（DeleteObject 追加済み）
+  # Glue Job 用 IAM ロール
   GlueJobRole:
     Type: AWS::IAM::Role
     Properties:
