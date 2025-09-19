@@ -1,11 +1,12 @@
 import boto3
 import os
-import time
+import time     #Glueジョブの状態確認時に待機するため
 
 # クライアント作成
 glue = boto3.client('glue')
 athena = boto3.client('athena')
 
+# Lambdaが起動されたときに呼ばれる関数
 def lambda_handler(event, context):
     job_name = os.environ['GLUE_JOB_NAME']
     database_name = os.environ['ATHENA_DATABASE']
@@ -81,13 +82,13 @@ def lambda_handler(event, context):
         temperature double
     )
     ROW FORMAT SERDE 'org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe'
-    WITH SERDEPROPERTIES ('serialization.format' = ',')
-    LOCATION 's3://{output_bucket}/preprocessed/'
+    WITH SERDEPROPERTIES ('serialization.format' = ',')     #カンマ区切りであることを明示している
+    LOCATION 's3://{output_bucket}/preprocessed/'           #この場所のcsvファイルをテーブルとして扱う
     TBLPROPERTIES ('has_encrypted_data'='false');
     """
     athena.start_query_execution(
         QueryString=create_table_query,
-        ResultConfiguration={'OutputLocation': f"s3://{output_bucket}/"}
+        ResultConfiguration={'OutputLocation': f"s3://{output_bucket}/preprocessed/"}
     )
     print(f"Athena table 'preprocessed_table' ensured.")
 
@@ -98,7 +99,7 @@ def lambda_handler(event, context):
     athena_response = athena.start_query_execution(
         QueryString=select_query,
         QueryExecutionContext={'Database': database_name},
-        ResultConfiguration={'OutputLocation': f"s3://{output_bucket}/"}
+        ResultConfiguration={'OutputLocation': f"s3://{output_bucket}/preprocessed/"}
     )
     query_execution_id = athena_response['QueryExecutionId']
     print(f"Athena SELECT query started. QueryExecutionId: {query_execution_id}")
