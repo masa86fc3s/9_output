@@ -66,18 +66,21 @@ echo "✅ Lambda に S3 呼び出し権限を付与完了"
 echo "🔧 S3 → Lambda 通知設定を登録..."
 
 # S3 バケットにオブジェクト作成時（.csv ファイル）のイベント通知を Lambda に送信する設定
+# 呼び出す Lambda の ARN
+# S3 オブジェクト作成時にトリガー、*は全ての作成イベント(Put,Post,Copy)を対象とする
+# .csv ファイルのみ対象
+                \"Filter\": {
 aws s3api put-bucket-notification-configuration \
     --bucket "$BUCKET_NAME" \
     --region $REGION \
     --notification-configuration "{
         \"LambdaFunctionConfigurations\": [
             {
-                \"LambdaFunctionArn\": \"$LAMBDA_ARN\",       # 呼び出す Lambda の ARN
-                \"Events\": [\"s3:ObjectCreated:*\"] ,       # S3 オブジェクト作成時にトリガー、*は全ての作成イベント(Put,Post,Copy)を対象とする
-                \"Filter\": {
+                \"LambdaFunctionArn\": \"$LAMBDA_ARN\",       
+                \"Events\": [\"s3:ObjectCreated:*\"] ,       
                     \"Key\": {
                         \"FilterRules\": [
-                            {\"Name\":\"suffix\",\"Value\":\".csv\"}  # .csv ファイルのみ対象
+                            {\"Name\":\"suffix\",\"Value\":\".csv\"}  
                         ]
                     }
                 }
