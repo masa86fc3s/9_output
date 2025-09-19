@@ -88,7 +88,7 @@ def lambda_handler(event, context):
     """
     athena.start_query_execution(
         QueryString=create_table_query,
-        ResultConfiguration={'OutputLocation': f"s3://{output_bucket}/preprocessed/"}
+        ResultConfiguration={'OutputLocation': f"s3://{output_bucket}/athena-results/"}
     )
     print(f"Athena table 'preprocessed_table' ensured.")
 
@@ -99,7 +99,7 @@ def lambda_handler(event, context):
     athena_response = athena.start_query_execution(
         QueryString=select_query,
         QueryExecutionContext={'Database': database_name},
-        ResultConfiguration={'OutputLocation': f"s3://{output_bucket}/preprocessed/"}
+        ResultConfiguration={'OutputLocation': f"s3://{output_bucket}/athena-results/"}
     )
     query_execution_id = athena_response['QueryExecutionId']
     print(f"Athena SELECT query started. QueryExecutionId: {query_execution_id}")
