@@ -69,23 +69,21 @@ echo "🔧 S3 → Lambda 通知設定を登録..."
 # 呼び出す Lambda の ARN
 # S3 オブジェクト作成時にトリガー、*は全ての作成イベント(Put,Post,Copy)を対象とする
 # .csv ファイルのみ対象
-                \"Filter\": {
 aws s3api put-bucket-notification-configuration \
     --bucket "$BUCKET_NAME" \
     --region $REGION \
     --notification-configuration "{
         \"LambdaFunctionConfigurations\": [
             {
-                \"LambdaFunctionArn\": \"$LAMBDA_ARN\",       
-                \"Events\": [\"s3:ObjectCreated:*\"] ,       
+                \"LambdaFunctionArn\": \"$LAMBDA_ARN\",
+                \"Events\": [\"s3:ObjectCreated:*\"],
+                \"Filter\": {
                     \"Key\": {
                         \"FilterRules\": [
-                            {\"Name\":\"suffix\",\"Value\":\".csv\"}  
+                            {\"Name\":\"suffix\",\"Value\":\".csv\"}
                         ]
                     }
                 }
             }
         ]
     }"
-
-echo "✅ S3→Lambda トリガー設定が完了しました"
