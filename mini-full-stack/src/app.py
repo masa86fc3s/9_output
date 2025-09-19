@@ -90,7 +90,7 @@ def lambda_handler(event, context):
 
     athena.start_query_execution(
         QueryString=create_table_query,
-        ResultConfiguration={'OutputLocation': f"s3://{output_bucket}/athena-results/"}
+        ResultConfiguration={'OutputLocation': f"s3://{output_bucket}/athena-results/"} #出力先のフォルダを指定できる、ただし名前のしてはできないらしい
     )
     print(f"Athena table 'preprocessed_table' ensured.")
 
