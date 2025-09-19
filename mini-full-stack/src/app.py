@@ -67,7 +67,7 @@ def lambda_handler(event, context):
     # 4. Athena テーブル作成（存在しなければ）
     # -----------------------------
     create_table_query = f"""
-    CREATE EXTERNAL TABLE IF NOT EXISTS {database_name}.preprocessed_table (
+    CREATE TABLE IF NOT EXISTS {database_name}.preprocessed_table (
         datetime string,
         y int,
         week string,
@@ -82,10 +82,11 @@ def lambda_handler(event, context):
         temperature double
     )
     ROW FORMAT SERDE 'org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe'
-    WITH SERDEPROPERTIES ('serialization.format' = ',')     #カンマ区切りであることを明示している
-    LOCATION 's3://{output_bucket}/preprocessed/'           #この場所のcsvファイルをテーブルとして扱う
+    WITH SERDEPROPERTIES ('serialization.format' = ',')
+    LOCATION 's3://{output_bucket}/preprocessed/'
     TBLPROPERTIES ('has_encrypted_data'='false');
     """
+
     athena.start_query_execution(
         QueryString=create_table_query,
         ResultConfiguration={'OutputLocation': f"s3://{output_bucket}/athena-results/"}
