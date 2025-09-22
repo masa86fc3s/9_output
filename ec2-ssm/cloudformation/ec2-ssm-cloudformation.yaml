@@ -1,0 +1,50 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Minimal EC2 for Session Manager in Sydney (Linux, Free Tier) with new IAM Role
+
+Parameters:
+  InstanceType:
+    Type: String
+    Default: t2.micro
+    AllowedValues:
+      - t2.micro
+      - t3.micro
+      - t3a.micro
+    Description: EC2 instance type (Free Tier eligible)
+
+Resources:
+  EC2InstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: SessionManagerEC2Role        
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+
+  EC2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref EC2InstanceRole
+
+  EC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: !Ref InstanceType
+      ImageId: ami-0629230e074c580f2
+      IamInstanceProfile: !Ref EC2InstanceProfile
+      SecurityGroupIds:
+        - !Ref 'AWS::NoValue'
+      Tags:
+        - Key: Name
+          Value: SessionManagerEC2-cloudformation
+
+Outputs:
+  InstanceId:
+    Description: The EC2 Instance ID
+    Value: !Ref EC2Instance

@@ -1,0 +1,57 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: SAM Template - Minimal EC2 for Session Manager in Sydney (Linux, Free Tier)
+
+Parameters:
+  InstanceType:
+    Type: String
+    Default: t2.micro
+    AllowedValues:
+      - t2.micro
+      - t3.micro
+      - t3a.micro
+    Description: EC2 instance type (Free Tier eligible)
+
+Resources:
+  EC2InstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+
+  EC2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref EC2InstanceRole
+
+  EC2SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow no inbound traffic (Session Manager only)
+      SecurityGroupIngress: []
+      VpcId: !Ref 'AWS::NoValue'
+
+  EC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: !Ref InstanceType
+      ImageId: ami-0629230e074c580f2 # Sydney, Amazon Linux 2
+      IamInstanceProfile: !Ref EC2InstanceProfile
+      SecurityGroupIds:
+        - !Ref EC2SecurityGroup
+      Tags:
+        - Key: Name
+          Value: SessionManagerEC2-sam
+
+Outputs:
+  InstanceId:
+    Description: The EC2 Instance ID
+    Value: !Ref EC2Instance

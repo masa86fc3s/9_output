@@ -1,14 +1,42 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: S3 → Lambda PoC (循環依存解消版)
+Description: >
+  S3 → Lambda → Glue → Athena のPoC構成
+  - 固定バケット名
+  - S3アップロードをトリガーにLambdaが起動
+  - LambdaからGlue Job実行 → Athenaで結果をクエリ
+  - IAMは必要最小限の権限
+
+Parameters:
+  GlueJobName:
+    Type: String
+    Default: mini-glue-job
+    # Glue Jobの名前を外部から上書きできるようにするパラメータ
 
 Resources:
 
-  # S3 バケット
-  MyBucket:
+  # ------------------------------------------------------------
+  # 1. S3バケット（生データ置き場）
+  # ------------------------------------------------------------
+  InputBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: mini-full-stack
+      BucketName: mini-full-input         # 固定名
+      VersioningConfiguration:
+        Status: Enabled                  # 変更履歴を保持
+      PublicAccessBlockConfiguration:     # セキュリティ: 公開アクセス禁止
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  # ------------------------------------------------------------
+  # 2. S3バケット（Athenaクエリ結果保存用）
+  # ------------------------------------------------------------
+  AthenaResultBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: mini-full-output
       VersioningConfiguration:
         Status: Enabled
       PublicAccessBlockConfiguration:
@@ -17,31 +45,182 @@ Resources:
         IgnorePublicAcls: true
         RestrictPublicBuckets: true
 
-  # Lambda 関数
-  MyLambda:
+  # Athenaが結果を書き込むためのバケットポリシー
+  AthenaResultBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref AthenaResultBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: athena.amazonaws.com  # Athenaサービスが書き込む
+            Action:
+              - s3:GetBucketLocation
+              - s3:PutObject
+              - s3:GetObject
+            Resource:
+              - !Sub arn:aws:s3:::${AthenaResultBucket}    #書き込むバケットを明示している
+              - !Sub arn:aws:s3:::${AthenaResultBucket}/*  #指定したs3のパスに対しての操作をポリシーで許可する箇所
+
+  # ------------------------------------------------------------
+  # 3. Lambdaが利用するIAMロール
+  # ------------------------------------------------------------
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com   # Lambdaが引き受ける
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+          # CloudWatch Logs出力など基本権限
+
+      # Lambdaに必要な追加ポリシー
+      Policies:
+        - PolicyName: LambdaAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              # (1) S3の入出力バケットへの読み書き
+              - Effect: Allow
+              #どんな操作を許可するのか
+                Action:                     
+                  - s3:GetObject
+                  - s3:PutObject
+                  - s3:ListBucket
+                  - s3:DeleteObject
+              #どの対象に対して、その操作を許可するのか
+                Resource:
+                  - arn:aws:s3:::mini-full-input
+                  - arn:aws:s3:::mini-full-input/*
+                  - arn:aws:s3:::mini-full-output
+                  - arn:aws:s3:::mini-full-output/*
+
+              # (2) Glueジョブの起動・状態確認
+              - Effect: Allow
+                Action:
+                  - glue:StartJobRun
+                  - glue:GetJobRun
+                  - glue:GetJobRuns
+                Resource: !Sub arn:aws:glue:${AWS::Region}:${AWS::AccountId}:job/${GlueJobName}
+
+              # (3) Athenaクエリの実行・結果取得
+              - Effect: Allow
+                Action:
+                  - athena:StartQueryExecution
+                  - athena:GetQueryExecution
+                  - athena:GetQueryResults
+                Resource: "*"
+
+              # (4) Glue Data Catalog操作（AthenaがDB/テーブルを使うため）
+              - Effect: Allow
+                Action:
+                  - glue:GetDatabase
+                  - glue:GetDatabases
+                  - glue:GetTable
+                  - glue:GetTables
+                  - glue:CreateDatabase
+                  - glue:CreateTable
+                Resource: "*"
+
+              # (5) Athena出力バケットへの書き込み明示
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                  - s3:ListBucket
+                  - s3:GetBucketLocation
+                Resource:
+                  - arn:aws:s3:::mini-full-output
+                  - arn:aws:s3:::mini-full-output/*
+
+  # ------------------------------------------------------------
+  # 4. Lambda関数本体
+  # ------------------------------------------------------------
+  LambdaGlueAthena:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: app.lambda_handler
+      FunctionName: lambda-glue-athena
+      Handler: app.lambda_handler        # src/app.py のlambda_handler関数
       Runtime: python3.11
-      CodeUri: src/
-      Policies:
-        - S3ReadPolicy:
-            BucketName: mini-full-stack
+      CodeUri: src/                      # ソースコード配置ディレクトリ
+      Role: !GetAtt LambdaExecutionRole.Arn
       Environment:
         Variables:
-          BUCKET_NAME: mini-full-stack
-      Events:
-        S3UploadEvent:
-          Type: S3
-          Properties:
-            Bucket: !Ref MyBucket
-            Events: s3:ObjectCreated:*
+          INPUT_BUCKET: !Ref InputBucket
+          ATHENA_OUTPUT_BUCKET: !Ref AthenaResultBucket
+          GLUE_JOB_NAME: !Ref GlueJobName
+          ATHENA_DATABASE: mini_glue_db   # AthenaのDB名（固定）
 
+  # S3からLambdaを呼び出すための権限設定
+  LambdaInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref LambdaGlueAthena
+      Action: lambda:InvokeFunction
+      Principal: s3.amazonaws.com
+      SourceArn: !GetAtt InputBucket.Arn
+
+  # ------------------------------------------------------------
+  # 5. Glueジョブ用のIAMロール
+  # ------------------------------------------------------------
+  GlueJobRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: glue.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: GlueS3Access
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                  - s3:ListBucket
+                  - s3:DeleteObject
+                Resource:
+                  - arn:aws:s3:::mini-full-input
+                  - arn:aws:s3:::mini-full-input/*
+                  - arn:aws:s3:::mini-full-output
+                  - arn:aws:s3:::mini-full-output/*
+
+  # Glue ETLジョブ本体
+  GlueETLJob:
+    Type: AWS::Glue::Job
+    DependsOn: GlueJobRole
+    Properties:
+      Name: !Ref GlueJobName
+      Role: !GetAtt GlueJobRole.Arn
+      Command:
+        Name: glueetl
+        ScriptLocation: s3://mini-full-input/glue-scripts/etl.py  # ETLスクリプト
+        PythonVersion: 3
+      MaxCapacity: 2  # 実行リソース(2 DPU)
+
+#スタックをデプロイした後にcloud formationがユーザーに教えてくれる情報
 Outputs:
-  LambdaFunctionName:
-    Description: "Lambda Function Name"
-    Value: !Ref MyLambda
-
-  S3BucketName:
-    Description: "S3 Bucket Name"
-    Value: !Ref MyBucket
+  LambdaFunction:
+    Description: デプロイ後のLambda関数名
+    Value: lambda-glue-athena
+  InputBucketName:
+    Description: 入力S3バケット名
+    Value: !Ref InputBucket
+  AthenaResultBucketName:
+    Description: Athena結果S3バケット名
+    Value: !Ref AthenaResultBucket
+  GlueJob:
+    Description: Glueジョブ名
+    Value: !Ref GlueETLJob
