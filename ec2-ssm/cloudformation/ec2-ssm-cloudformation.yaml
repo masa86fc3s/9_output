@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: Minimal EC2 for Session Manager in Sydney (Linux, Free Tier) with new IAM Role
+Description: Minimal EC2 for Session Manager in Sydney (Linux, Free Tier) with new IAM Role using SSM AMI Parameter
 
 Parameters:
   InstanceType:
@@ -11,11 +11,17 @@ Parameters:
       - t3a.micro
     Description: EC2 instance type (Free Tier eligible)
 
+  LatestAmiId:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2
+    Description: Latest Amazon Linux 2 AMI ID (automatically resolved per region)
+
 Resources:
+  # IAM Role for EC2 to allow SSM Session Manager
   EC2InstanceRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: SessionManagerEC2Role        
+      RoleName: SessionManagerEC2Role   
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -26,20 +32,20 @@ Resources:
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
 
+  # Instance Profile to attach role to EC2
   EC2InstanceProfile:
     Type: AWS::IAM::InstanceProfile
     Properties:
       Roles:
         - !Ref EC2InstanceRole
 
+  # EC2 Instance
   EC2Instance:
     Type: AWS::EC2::Instance
     Properties:
       InstanceType: !Ref InstanceType
-      ImageId: ami-0629230e074c580f2
+      ImageId: !Ref LatestAmiId
       IamInstanceProfile: !Ref EC2InstanceProfile
-      SecurityGroupIds:
-        - !Ref 'AWS::NoValue'
       Tags:
         - Key: Name
           Value: SessionManagerEC2-cloudformation
@@ -48,3 +54,7 @@ Outputs:
   InstanceId:
     Description: The EC2 Instance ID
     Value: !Ref EC2Instance
+
+  InstanceRoleName:
+    Description: The IAM Role name attached to the EC2
+    Value: !Ref EC2InstanceRole
