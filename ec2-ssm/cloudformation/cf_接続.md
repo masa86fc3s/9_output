@@ -50,3 +50,15 @@ $$
 
 *  リージョンを変更するときにはそれに伴ったami idも必ず変更しなければならない
   * こうすることでssm接続が可能になる。
+
+## CLI接続確認
+```bash
+aws ssm start-session --target <インスタンスID>
+```
+- 接続後：
+```bash
+whoami
+ls
+exit
+```
+- ターミナル上で EC2 の操作が可能
